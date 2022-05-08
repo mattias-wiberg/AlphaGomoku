@@ -20,8 +20,7 @@ class GameBoard:
     def get_seq_reward(self, sequence):
         consecutive_seq_sum = np.sum(sequence[0:5])
         if abs(consecutive_seq_sum) == 5:
-            # if testing: return sum, otherwise 1   
-            return consecutive_seq_sum
+            return consecutive_seq_sum/5
         for i in range(5, len(sequence)):
             next_val = sequence[i]
             if next_val != self.piece:
@@ -31,11 +30,10 @@ class GameBoard:
                 consecutive_seq_sum -= sequence[i-5]    # subtract the first value from the rolling window 
                 consecutive_seq_sum += next_val         # add the new value to the rolling window
                 if abs(consecutive_seq_sum) == 5:
-                    # if testing: return sum, otherwise 1   
-                    return consecutive_seq_sum
+                    return consecutive_seq_sum/5
         return 0 # no one has won
 
-    # 0/+1: nothing/victory
+    # -1/0/+1: black wins/nothing/white wins
     def get_reward(self, row, col):
         row_bounds = (max(0,row-4), min(self.N_row,row+5))
         col_bounds = (max(0,col-4), min(self.N_col,col+5))
@@ -60,11 +58,12 @@ class GameBoard:
         return 0
 
     def move(self, row, col):
-        assert self.board[row,col] == 0 
+        assert self.board[row,col] == 0     # double check that it is a legal move
         self.board[row,col] = self.piece
         reward = self.get_reward(row, col)
         if reward != 0:
             self.restart()
         else:
             self.piece *= -1 # Alternate between white and black
+        # TODO: reward MUST have a sign for testing cases to work correctly, so take that into account when adding it into the transition
         return reward

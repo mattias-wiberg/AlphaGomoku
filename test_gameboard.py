@@ -47,11 +47,45 @@ test_moves = [
             (13,6), (6,9),
             (14,6), (10,10)],   # vertical test (idx=4)
 
+            [(0,14), (1,0),
+            (1,13), (3,3),
+            (2,12), (5,6),
+            (3,11), (10,6),         
+            (4,10)],           # / test (idx=5)
+
+            [(0,14), (4,10),
+            (1,13), (3,3),
+            (2,12), (5,6),
+            (3,11), (10,6),         
+            (5,9)],          # / test (idx=6)
+
+            [(0,14), (7,4),
+            (1,13), (8,5),
+            (2,12), (9,6),
+            (3,11), (10,7),         
+            (5,9), (11,8)],  # \ test (idx=7)
+
+            [(0,14), (10,14),
+            (1,13), (9,13),
+            (2,12), (8,12),
+            (3,11), (7,11),         
+            (5,9), (6,10)],  # \ test (idx=8)
+
+            [(14,3), (10,14),
+            (14,4), (9,13),
+            (14,5), (8,12),
+            (14,6), (7,11),         
+            (14,7), (0,0)],  # horizontal test (idx=9)
+
+            [(0,0), (6,14),
+            (14,4), (6,13),
+            (14,5), (6,12),
+            (14,6), (6,11),         
+            (14,7), (6,10)]  # horizontal test (idx=10)
 
 ]
 
-expected_outcomes = [-5, 5, 0, -5, 0]
-
+expected_outcomes = [-1, 1, 0, -1, 0, -1, 0, 1, 1, -1, 1]
 N_row = 15
 N_col = 15
 
@@ -62,7 +96,26 @@ for idx, test in enumerate(test_moves):
         if reward != 0:
             break   
     assert reward == expected_outcomes[idx]
-    print(f"Passed {idx+1}/{len(test_moves)}")
+    print(f"Passed gameboard.move(): {idx+1}/{len(test_moves)}")
 
-#visualize_moves(N_row, N_col, test_moves[4])
+#visualize_moves(N_row, N_col, test_moves[10])
 
+
+seqs_to_test = [
+                [1,1,1,1,0,1,1,1,1],            # 0
+                [-1,-1,-1,-1,1,-1,-1,-1,-1],    # 1
+                [-1,1,1,1,1,0,1,1,1],           # 2
+                [0,1,1,1,1,0,1,1,1],            # 3
+                [0,1,1,1,1,1,-1,-1,-1],         # 4
+                [-1,1,1,1,1,1,-1,-1,-1],        # 5
+                [-1,1,-1,-1,-1,-1,-1,1,1],      # 6
+                [0,1,1,1,1,0],                  # 7
+                [0,-1,-1,-1,-1,-1]              # 8
+]
+piece_to_test = [-1,-1,-1,-1,1,1,-1,1,-1]
+expected_seq_outcomes = [0,0,0,0,1,1,-1,0,-1]
+gameboard = GameBoard(N_row, N_col)
+for idx, seq in enumerate(seqs_to_test):
+    gameboard.piece = piece_to_test[idx]
+    assert gameboard.get_seq_reward(seq) == expected_seq_outcomes[idx]
+    print(f"Passed gameboard.get_seq_reward(): {idx+1}/{len(seqs_to_test)}")
