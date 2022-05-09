@@ -129,3 +129,9 @@ for _ in range(10000):
     index = agent.get_random_action()
     assert gameboard.board[index] == 0
 print("Passed agent.get_random_action()")
+
+# Test get random action
+gameboard = GameBoard(N_row, N_col)
+agent = TDQNAgent(gameboard=gameboard)
+gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+gameboard.plot()

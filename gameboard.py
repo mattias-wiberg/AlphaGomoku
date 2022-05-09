@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import imagesc as sc
 
 class GameBoard:
     def __init__(self,N_row,N_col):
@@ -56,6 +58,16 @@ class GameBoard:
             return forward_diag_victory
         
         return 0
+
+    def plot(self):
+        sc.plot(
+            self.board,
+            grid=True,
+            linewidth=1,
+            title="Turn: {0}".format(self.piece),
+            cmap="Greys",
+            figsize=(5, 5),
+        )
 
     def move(self, row, col):
         assert self.board[row,col] == 0     # double check that it is a legal move
