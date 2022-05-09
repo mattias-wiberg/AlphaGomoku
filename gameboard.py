@@ -9,12 +9,12 @@ class GameBoard:
         #  0   empty
         #  1   white
         self.board = np.zeros((N_row, N_col), dtype=np.int8)    # assignment to tensors not allowed, so must use numpy
-        self.gameOver = False
+        self.gameover = False
         self.piece = -1
 
     def restart(self):
         self.board = np.zeros((self.N_row, self.N_col), dtype=np.int8)
-        self.gameOver = False
+        self.gameover = False
         self.piece = -1
 
     def get_seq_reward(self, sequence):
@@ -62,7 +62,7 @@ class GameBoard:
         self.board[row,col] = self.piece
         reward = self.get_reward(row, col)
         if reward != 0:
-            self.restart()
+            self.gameover = True
         else:
             self.piece *= -1 # Alternate between white and black
         # TODO: reward MUST have a sign for testing cases to work correctly, so take that into account when adding it into the transition

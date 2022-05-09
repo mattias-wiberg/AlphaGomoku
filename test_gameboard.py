@@ -1,6 +1,7 @@
 from gameboard import GameBoard
 import numpy as np
 import matplotlib.pyplot as plt
+from agent import TDQNAgent
 
 def visualize_moves(N_row, N_col, moves):
     board = np.zeros((N_row, N_col))
@@ -119,3 +120,12 @@ for idx, seq in enumerate(seqs_to_test):
     gameboard.piece = piece_to_test[idx]
     assert gameboard.get_seq_reward(seq) == expected_seq_outcomes[idx]
     print(f"Passed gameboard.get_seq_reward(): {idx+1}/{len(seqs_to_test)}")
+
+# Test get random action
+gameboard = GameBoard(N_row, N_col)
+agent = TDQNAgent(gameboard=gameboard)
+for _ in range(10000):
+    gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+    index = agent.get_random_action()
+    assert gameboard.board[index] == 0
+print("Passed agent.get_random_action()")

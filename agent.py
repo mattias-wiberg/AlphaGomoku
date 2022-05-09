@@ -1,16 +1,30 @@
-import tensorflow as tf
+import torch
+import copy
+import pickle
+import numpy as np
+import random
 
-class QN(tf.Module):
-    def __init__(self, in_dim, out_dim):
+class QN(torch.nn.Module):
+    def __init__(self):
         super(QN, self).__init__()
+        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1))
+        self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
+        self.flatten_1 = torch.nn.Flatten()
+
+        self.fc1 = torch.nn.Linear(100, 100)
+        self.fc2 = torch.nn.Linear(100, 100)
+        self.fc3 = torch.nn.Linear(100, 15)
     
     def forward(self, x):
-        return x
+        out = self.flatten_1(self.pool_1(torch.relu(self.conv_1(x))))
 
-class Agent:
-    # Agent for learning to play tetris using Q-learning
-    def __init__(self,alpha,epsilon,epsilon_scale,replay_buffer_size,batch_size,sync_target_episode_count,episode_count):
-        # Initialize training parameters
+        out = torch.relu(self.fc1(out))
+        out = torch.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out
+
+class TDQNAgent:
+    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,replay_buffer_size=10000,batch_size=32,sync_target_episode_count=100,episode_count=10000):
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
@@ -20,36 +34,33 @@ class Agent:
         self.episode=0
         self.episode_count=episode_count
         self.reward_tots=[0]*episode_count
-
-    def init_game(self, gameboard):
-        self.gameboard=gameboard
-        self.qn = QN(gameboard.N_col*gameboard.N_row, 4*4)
-        self.qnhat = tf.keras.models.clone_model(self.qn)
+        self.gameboard = gameboard
+        self.qn = QN()
+        self.qnhat = copy.deepcopy(self.qn)
         self.exp_buffer = []
-        self.criterion = tf.losses.MSELoss()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.alpha)
+        self.criterion = torch.nn.MSELoss()
+        self.optimizer = torch.optim.Adam(self.qn.parameters(), lr=self.alpha)
 
+    def load_strategy(self,strategy_file):
+        self.qn.load_state_dict(torch.load(strategy_file))
+        self.qnhat = copy.deepcopy(self.qn)
 
-    def load_strategy(self, strategy_file):
-        # Load strategy from file
-        self.qn = tf.keras.models.load_model(strategy_file)
-        self.qnhat = tf.keras.models.clone_model(self.qn)
-
-    def read_state(self):
-        self.state = self.gameboard.board.flatten()
+    # Returns the row,col of a valid random action
+    def get_random_action(self):
+        mask = self.gameboard.board == 0
+        index = np.unravel_index(np.argmax(np.random.random(mask.shape)*mask), mask.shape)
+        return index
 
     def select_action(self):
-        out = self.qn(torch.tensor(self.state)).detach().numpy()
+        self.qn.eval()
+        out = self.qn(torch.tensor(self.gameboard.board, dtype=torch.float64)).detach().numpy()
         if np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
-            self.action = random.randint(0, (4*4)-1)
+            self.action = self.get_random_action()
         else: 
             self.action = np.argmax(out)
         
-        rotation = int(self.action / 4)
-        position = self.action % 4
-        self.gameboard.move()
-
-    def fn_reinforce(self,batch):
+    def reinforce(self,batch):
+        # TODO: Implement this function correct with first and last player's perspective
         targets = []
         action_value = []
         self.qn.train()
@@ -72,22 +83,11 @@ class Agent:
 
         targets = torch.stack(targets)
         action_value = torch.stack(action_value)
-        loss = self.criterion(action_value, targets)
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-        # TO BE COMPLETED BY STUDENT
-        # This function should be written by you
-        # Instructions:
-        # Update the Q network using a batch of quadruplets (old state, last action, last reward, new state)
-        # Calculate the loss function by first, for each old state, use the Q-network to calculate the values Q(s_old,a), i.e. the estimate of the future reward for all actions a
-        # Then repeat for the target network to calculate the value \hat Q(s_new,a) of the new state (use \hat Q=0 if the new state is terminal)
-        # This function should not return a value, the Q table is stored as an attribute of self
-
+        loss = self.criterion
         # Useful variables: 
         # The input argument 'batch' contains a sample of quadruplets used to update the Q-network
 
-    def fn_turn(self):
+    def turn(self):
         if self.gameboard.gameover:
             self.episode+=1
             if self.episode%100==0:
@@ -95,45 +95,34 @@ class Agent:
             if self.episode%1000==0:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
                 if self.episode in saveEpisodes:
-                    # TO BE COMPLETED BY STUDENT
-                    # Here you can save the rewards and the Q-network to data files
-                    torch.save(self.qn.state_dict(), 'qn_'+str(self.episode)+'.pth')
-                    torch.save(self.qnhat.state_dict(), 'qnhat_'+str(self.episode)+'.pth')
-                    pickle.dump(self.reward_tots, open('reward_tots_'+str(self.episode)+'.p', 'wb'))
+                    torch.save(self.qn.state_dict(), 'qn.pth')
+                    pickle.dump(self.reward_tots, open('reward_tots.p', 'wb'))
             if self.episode>=self.episode_count:
-                raise SystemExit(0)
+                return
             else:
                 if (len(self.exp_buffer) >= self.replay_buffer_size) and ((self.episode % self.sync_target_episode_count)==0):
-                    pass
-                    # TO BE COMPLETED BY STUDENT
-                    # Here you should write line(s) to copy the current network to the target network
                     self.qnhat = copy.deepcopy(self.qn)
-                self.gameboard.fn_restart()
+                self.gameboard.restart()
         else:
-            # Select and execute action (move the tile to the desired column and orientation)
-            self.fn_select_action()
-            # TO BE COMPLETED BY STUDENT
-            # Here you should write line(s) to copy the old state into the variable 'old_state' which is later stored in the ecperience replay buffer
-            old_state = self.state.copy()
+            # Select and execute action (move the peice to the desired column and orientation)
+            self.select_action()
 
-            # Drop the tile on the game board
-            reward=self.gameboard.fn_drop()
+            # Copy the old state into the variable 'old_state' which is later stored in the ecperience replay buffer
+            old_state = self.gameboard.board.copy()
 
-            # TO BE COMPLETED BY STUDENT
-            # Here you should write line(s) to add the current reward to the total reward for the current episode, so you can save it to disk later
+            # Place the stone on the game board
+            reward = self.gameboard.move(self.action[0], self.action[1])
+            reward = abs(reward) # Reward is always positive
+
             self.reward_tots[self.episode] += reward
 
-            # Read the new state
-            self.fn_read_state()
-            
-            # TO BE COMPLETED BY STUDENT
-            # Here you should write line(s) to store the state in the experience replay buffer
+            # Store the state in the experience replay buffer
             self.exp_buffer.append((old_state, self.action, reward, self.state.copy(), self.gameboard.gameover)) # Transition = {s_t, a_t, r_t, s_t+1}
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 # TO BE COMPLETED BY STUDENT
                 # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets 
                 batch = random.sample(self.exp_buffer, k=self.batch_size)
-                self.fn_reinforce(batch)
+                self.reinforce(batch)
                 if len(self.exp_buffer) >= self.replay_buffer_size + 2:
                     self.exp_buffer.pop(0) # Remove the oldest transition from the buffer
