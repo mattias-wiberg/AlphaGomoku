@@ -2,6 +2,7 @@ from gameboard import GameBoard
 import numpy as np
 import matplotlib.pyplot as plt
 from agent import TDQNAgent
+import torch
 
 def visualize_moves(N_row, N_col, moves):
     board = np.zeros((N_row, N_col))
@@ -97,7 +98,7 @@ for idx, test in enumerate(test_moves):
         if reward != 0:
             break   
     assert reward == expected_outcomes[idx]
-    print(f"Passed gameboard.move(): {idx+1}/{len(test_moves)}")
+print("Passed gameboard.move()")
 
 #visualize_moves(N_row, N_col, test_moves[10])
 
@@ -119,7 +120,7 @@ gameboard = GameBoard(N_row, N_col)
 for idx, seq in enumerate(seqs_to_test):
     gameboard.piece = piece_to_test[idx]
     assert gameboard.get_seq_reward(seq) == expected_seq_outcomes[idx]
-    print(f"Passed gameboard.get_seq_reward(): {idx+1}/{len(seqs_to_test)}")
+print("Passed gameboard.get_seq_reward()")
 
 # Test get random action
 gameboard = GameBoard(N_row, N_col)
@@ -135,3 +136,16 @@ gameboard = GameBoard(N_row, N_col)
 agent = TDQNAgent(gameboard=gameboard)
 gameboard.board = np.random.randint(-1,2,(N_row,N_col))
 gameboard.plot()
+
+gameboard = GameBoard()
+torch.manual_seed(1234)
+boards = [(np.random.randint(-1,2,(N_row,N_col)), (0,0)),
+            (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
+            (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
+            (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
+            (np.random.randint(-1,2,(N_row,N_col)), (0,0))
+]
+agent = TDQNAgent(gameboard=gameboard)
+for board, target in boards:
+    gameboard.board = board
+    assert agent.get_max_action() == target
