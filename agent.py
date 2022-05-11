@@ -51,13 +51,21 @@ class TDQNAgent:
         index = np.unravel_index(np.argmax(np.random.random(mask.shape)*mask), mask.shape)
         return index
 
-    def select_action(self):
+    # Returns the row,col of a valid action with the max future reward
+    def get_max_action(self):
         self.qn.eval()
         out = self.qn(torch.tensor(self.gameboard.board, dtype=torch.float64)).detach().numpy()
+        mask = np.abs(self.gameboard.board) == 1 # Mask for non valid actions
+        # Make the non valid cations have a lower value than the lowest valid action
+        # this ensures that argmax will always give a valid action
+        index = np.unravel_index(np.argmax(out-mask*(np.min(out)-1.0)), mask.shape) 
+        return index
+
+    def select_action(self):
         if np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
             self.action = self.get_random_action()
         else: 
-            self.action = np.argmax(out)
+            self.action = self.get_max_action()
         
     def reinforce(self,batch):
         # TODO: Implement this function correct with first and last player's perspective
