@@ -7,7 +7,7 @@ import random
 class QN(torch.nn.Module):
     def __init__(self):
         super(QN, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1),  dtype=torch.float64)
+        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
         self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
         self.flatten_1 = torch.nn.Flatten()
 
@@ -54,7 +54,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.tensor(self.gameboard.board, dtype=torch.float64)).detach().numpy()
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,15,15))).detach().numpy()
         mask = np.abs(self.gameboard.board) == 1 # Mask for non valid actions
         # Make the non valid cations have a lower value than the lowest valid action
         # this ensures that argmax will always give a valid action
