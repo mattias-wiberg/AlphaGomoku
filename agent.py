@@ -54,7 +54,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,15,15))).detach().numpy()
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()
         mask = np.abs(self.gameboard.board) == 1 # Mask for non valid actions
         # Make the non valid cations have a lower value than the lowest valid action
         # this ensures that argmax will always give a valid action

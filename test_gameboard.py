@@ -146,18 +146,12 @@ def test_plot_board():
 #test_plot_board()
 
 # Test get_max_action
-def get_max_action():
+def test_get_max_action():
     gameboard = GameBoard(N_row, N_col)
-    torch.manual_seed(1234)
-    boards = [(np.random.randint(-1,2,(N_row,N_col)), (0,0)),
-                (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
-                (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
-                (np.random.randint(-1,2,(N_row,N_col)), (0,0)),
-                (np.random.randint(-1,2,(N_row,N_col)), (0,0))
-    ]
     agent = TDQNAgent(gameboard=gameboard)
-    for board, target in boards:
-        gameboard.board = board
-        assert agent.get_max_action() == target
+    for _ in range(10000):
+        gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+        index = agent.get_max_action()
+        assert gameboard.board[index] == 0
     print("Passed agent.get_max_action()")
-get_max_action()
+test_get_max_action()
