@@ -11,9 +11,9 @@ class QN(torch.nn.Module):
         self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
         self.flatten_1 = torch.nn.Flatten()
 
-        self.fc1 = torch.nn.Linear(1000, 500, dtype=torch.float64)
-        self.fc2 = torch.nn.Linear(500, 500, dtype=torch.float64)
-        self.fc3 = torch.nn.Linear(500, 15, dtype=torch.float64)
+        self.fc1 = torch.nn.Linear(1000, 1000, dtype=torch.float64)
+        self.fc2 = torch.nn.Linear(1000, 225, dtype=torch.float64)
+        self.fc3 = torch.nn.Linear(225, 225, dtype=torch.float64)
     
     def forward(self, x):
         out = self.flatten_1(self.pool_1(torch.relu(self.conv_1(x))))
@@ -72,13 +72,14 @@ class TDQNAgent:
         # batch[0]: old states (32, 15, 15, 1)
         targets = []
         action_value = []
-        self.qn.eval()
+        self.qn.train()
         self.qnhat.eval()
         old_states = batch[0]
-        self.qn(old_states)
-        return 
+        actions = batch[1]
+        predictions = torch.gather(self.qn(old_states), 1, actions)
         
         #predictions = 
+        # TODO: remove autograd?
 
         #targets = 
 
