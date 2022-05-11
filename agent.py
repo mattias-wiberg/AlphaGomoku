@@ -3,7 +3,10 @@ import copy
 import pickle
 import numpy as np
 import random
-import time
+from collections import namedtuple
+
+Transition = namedtuple("Transition", 
+                        ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "legal_action_new_state_mask"))
 
 class QN(torch.nn.Module):
     def __init__(self):
@@ -42,7 +45,8 @@ class TDQNAgent:
         self.exp_buffer = []
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.qn.parameters(), lr=self.alpha)
-        
+        self.last_2_transitions = []
+
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
         self.qnhat = copy.deepcopy(self.qn)
@@ -89,6 +93,9 @@ class TDQNAgent:
             self.action = self.get_max_action()
         
     def reinforce(self,batch):
+        # batch: list of transitions
+        # transition: tuple of old_states, action_mask, rewards, new_states, terminal_mask, legal_action_new_states_mask
+        # TODO: fix this
         self.qn.train()
         self.qnhat.eval()
         old_states = batch[0]   # (32,1,15,15)
@@ -96,7 +103,7 @@ class TDQNAgent:
         rewards = batch[2]      # (32)
         new_states = batch[3]   # (32,1,15,15)
         terminal_mask = batch[4]# (32)
-        legal_action_new_states_mask = batch[5] # (32,15,15), torch.squeeze(new_states) != 0
+        legal_action_new_states_mask = batch[5] # (32,15,15), torch.squeeze(new_states) == 0
         predictions = self.qn(old_states)[action_mask]
         with torch.no_grad():
             expected_future_reward = self.qnhat(new_states)
@@ -112,39 +119,50 @@ class TDQNAgent:
     def turn(self):
         if self.gameboard.gameover:
             self.episode+=1
+            
             if self.episode%100==0:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ',str(np.mean(self.reward_tots[self.episode-100:self.episode])),')')
+            
             if self.episode%1000==0:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
                 if self.episode in saveEpisodes:
                     torch.save(self.qn.state_dict(), 'qn.pth')
                     pickle.dump(self.reward_tots, open('reward_tots.p', 'wb'))
+            
             if self.episode>=self.episode_count:
                 return
             else:
                 if (len(self.exp_buffer) >= self.replay_buffer_size) and ((self.episode % self.sync_target_episode_count)==0):
                     self.qnhat = copy.deepcopy(self.qn)
                 self.gameboard.restart()
+            
         else:
-            # Select and execute action (move the peice to the desired column and orientation)
             self.select_action()
 
-            # Copy the old state into the variable 'old_state' which is later stored in the ecperience replay buffer
-            old_state = self.gameboard.board.copy()
+            transition = Transition()            
+            transition.old_state = torch.as_tensor(self.gameboard.board, dtype=torch.float64)
+            transition.action_mask = np.zeros((32,15,15), dtype=bool)
+            transition.action_mask[self.action[0], self.action[1]] = 1
 
-            # Place the stone on the game board
             reward = self.gameboard.move(self.action[0], self.action[1])
             reward = abs(reward) # Reward is always positive
-
             self.reward_tots[self.episode] += reward
 
-            # Store the state in the experience replay buffer
-            self.exp_buffer.append((old_state, self.action, reward, self.state.copy(), self.gameboard.gameover)) # Transition = {s_t, a_t, r_t, s_t+1}
+            transition.reward = reward
+            transition.terminal_mask = reward
+            transition.new_state = torch.as_tensor(self.gameboard.board, dtype=torch.float64)
+            transition.legal_action_new_state_mask = self.gameboard.board == 0
+            self.last_2_transitions.append(transition)
+
+            if len(self.last_2_transitions) == 3:
+                self.exp_buffer.append(self.last_2_transitions.pop(0))
+            if reward:
+                # the previus move was a losing move
+                self.last_2_transitions[0].reward = -1
+                self.last_2_transitions[0].terminal_mask = 0
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
-                # TO BE COMPLETED BY STUDENT
-                # Here you should write line(s) to create a variable 'batch' containing 'self.batch_size' quadruplets 
                 batch = random.sample(self.exp_buffer, k=self.batch_size)
                 self.reinforce(batch)
                 if len(self.exp_buffer) >= self.replay_buffer_size + 2:
-                    self.exp_buffer.pop(0) # Remove the oldest transition from the buffer
+                    self.exp_buffer.pop(0)
