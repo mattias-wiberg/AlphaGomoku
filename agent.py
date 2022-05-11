@@ -89,41 +89,25 @@ class TDQNAgent:
             self.action = self.get_max_action()
         
     def reinforce(self,batch):
-        # TODO: Implement this function correct with first and last player's perspective
-        # batch[0]: old states (32, 15, 15, 1)
-        targets = []
-        action_value = []
         self.qn.train()
         self.qnhat.eval()
-        old_states = batch[0]
-        actions = batch[1]
-        predictions = torch.gather(self.qn(old_states), 1, actions)
-        
-        #predictions = 
-        # TODO: remove autograd?
-
-        #targets = 
-
-        for transition in batch:
-            state = transition[0]
-            action = transition[1]
-            reward = transition[2]
-            next_state = transition[3]
-            terminal = transition[4]
-
-            y = reward
-            if not terminal:
-                out = self.qnhat(torch.tensor(next_state)).detach().numpy()
-                y += max(out)
-            targets.append(torch.tensor(y, dtype=torch.float64))
-            out = self.qn(torch.tensor(state))
-            action_value.append(out[action])
-
-        targets = torch.stack(targets)
-        action_value = torch.stack(action_value)
-        loss = self.criterion
-        # Useful variables: 
-        # The input argument 'batch' contains a sample of quadruplets used to update the Q-network
+        old_states = batch[0]   # (32,1,15,15)
+        action_mask = batch[1]  # (32,15,15)
+        rewards = batch[2]      # (32)
+        new_states = batch[3]   # (32,1,15,15)
+        terminal_mask = batch[4]# (32)
+        legal_action_new_states_mask = batch[5] # (32,15,15), torch.squeeze(new_states) != 0
+        predictions = self.qn(old_states)[action_mask]
+        with torch.no_grad():
+            expected_future_reward = self.qnhat(new_states)
+            expected_future_reward[legal_action_new_states_mask] = -np.infty
+            targets = torch.max(torch.reshape(expected_future_reward, (32,15*15)), 1)[0]
+            targets[terminal_mask] = 0
+            targets += rewards
+        loss = self.criterion(predictions,targets)
+        self.optimizers.zero_grad()
+        loss.backward()
+        self.optimizers.step()
 
     def turn(self):
         if self.gameboard.gameover:
