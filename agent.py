@@ -7,13 +7,13 @@ import random
 class QN(torch.nn.Module):
     def __init__(self):
         super(QN, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1))
+        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1),  dtype=torch.float64)
         self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
         self.flatten_1 = torch.nn.Flatten()
 
-        self.fc1 = torch.nn.Linear(100, 100)
-        self.fc2 = torch.nn.Linear(100, 100)
-        self.fc3 = torch.nn.Linear(100, 15)
+        self.fc1 = torch.nn.Linear(1000, 500, dtype=torch.float64)
+        self.fc2 = torch.nn.Linear(500, 500, dtype=torch.float64)
+        self.fc3 = torch.nn.Linear(500, 15, dtype=torch.float64)
     
     def forward(self, x):
         out = self.flatten_1(self.pool_1(torch.relu(self.conv_1(x))))
@@ -69,10 +69,18 @@ class TDQNAgent:
         
     def reinforce(self,batch):
         # TODO: Implement this function correct with first and last player's perspective
+        # batch[0]: old states (32, 15, 15, 1)
         targets = []
         action_value = []
-        self.qn.train()
+        self.qn.eval()
         self.qnhat.eval()
+        old_states = batch[0]
+        self.qn(old_states)
+        return 
+        
+        #predictions = 
+
+        #targets = 
 
         for transition in batch:
             state = transition[0]
