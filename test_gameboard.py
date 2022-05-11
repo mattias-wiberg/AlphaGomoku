@@ -2,6 +2,7 @@ from gameboard import GameBoard
 import numpy as np
 import matplotlib.pyplot as plt
 from agent import TDQNAgent
+import time
 import torch
 
 def visualize_moves(N_row, N_col, moves):
@@ -101,9 +102,8 @@ def test_move():
                 break   
         assert reward == expected_outcomes[idx]
     print("Passed gameboard.move()")
-#test_move()
 
-#visualize_moves(N_row, N_col, test_moves[10])
+    #visualize_moves(N_row, N_col, test_moves[10])
 
 def test_get_seq_reward():
     seqs_to_test = [
@@ -124,18 +124,20 @@ def test_get_seq_reward():
         gameboard.piece = piece_to_test[idx]
         assert gameboard.get_seq_reward(seq) == expected_seq_outcomes[idx]
     print("Passed gameboard.get_seq_reward()")
-#test_get_seq_reward()
 
 # Test get random action
 def test_get_random_action():
     gameboard = GameBoard(N_row, N_col)
     agent = TDQNAgent(gameboard=gameboard)
+    time_total = 0
     for _ in range(10000):
         gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+        start_time = time.time()
         index = agent.get_random_action()
+        time_total += time.time() - start_time
         assert gameboard.board[index] == 0
     print("Passed agent.get_random_action()")
-#test_get_random_action()
+    print("Total time: ", time_total)
 
 # Test plot_board
 def test_plot_board():
@@ -143,15 +145,64 @@ def test_plot_board():
     agent = TDQNAgent(gameboard=gameboard)
     gameboard.board = np.random.randint(-1,2,(N_row,N_col))
     gameboard.plot()
-#test_plot_board()
 
 # Test get_max_action
 def test_get_max_action():
     gameboard = GameBoard(N_row, N_col)
     agent = TDQNAgent(gameboard=gameboard)
+    time_total = 0
     for _ in range(10000):
         gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+        start_time = time.time()
         index = agent.get_max_action()
+        time_total += time.time() - start_time
         assert gameboard.board[index] == 0
     print("Passed agent.get_max_action()")
-test_get_max_action()
+    print("Total time: ", time_total)
+
+# Test get_max_action version
+def test_get_max_action_slow():
+    gameboard = GameBoard(N_row, N_col)
+    agent = TDQNAgent(gameboard=gameboard)
+    time_total = 0
+    for _ in range(10000):
+        gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+        start_time = time.time()
+        index = agent.get_max_action_slow()
+        time_total += time.time() - start_time
+        assert gameboard.board[index] == 0
+    print("Passed agent.test_get_max_action_slow()")
+    print("Total time: ", time_total)
+
+# Test get_max_action version
+def test_get_max_action_slower():
+    gameboard = GameBoard(N_row, N_col)
+    agent = TDQNAgent(gameboard=gameboard)
+    time_total = 0
+    for _ in range(10000):
+        gameboard.board = np.random.randint(-1,2,(N_row,N_col))
+        start_time = time.time()
+        index = agent.get_max_action_slower()
+        time_total += time.time() - start_time
+        assert gameboard.board[index] == 0
+    print("Passed agent.test_get_max_action_slower()")
+    print("Total time: ", time_total)
+
+#test_plot_board()
+test_fuctions = [
+    test_get_max_action,
+    test_get_max_action_slow,
+    test_get_max_action_slower,
+    test_get_random_action,
+    #test_get_seq_reward,
+    #test_move
+]
+testi = 0
+print("--- Running tests ---")
+start_time = time.time()
+for test in test_fuctions:
+    print("Running test {}/{}".format(testi+1, len(test_fuctions)))
+    test()
+    testi += 1
+    pass
+print("--- Passed all tests in %s seconds ---" % (time.time() - start_time))

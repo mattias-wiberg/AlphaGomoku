@@ -3,6 +3,7 @@ import copy
 import pickle
 import numpy as np
 import random
+import time
 
 class QN(torch.nn.Module):
     def __init__(self):
@@ -41,7 +42,7 @@ class TDQNAgent:
         self.exp_buffer = []
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.qn.parameters(), lr=self.alpha)
-
+        
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
         self.qnhat = copy.deepcopy(self.qn)
@@ -53,14 +54,33 @@ class TDQNAgent:
         return index
 
     # Returns the row,col of a valid action with the max future reward
-    def get_max_action(self):
+    def get_max_action_slow(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()
-        mask = np.abs(self.gameboard.board) == 1 # Mask for non valid actions
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        mask = np.abs(self.gameboard.board) == 0 # Mask for valid actions
+        if out.min() <= 0: # Shift all valid actions positive > 0
+            out[mask] += abs(out.min()) + 1.0
         # Make the non valid cations have a lower value than the lowest valid action
         # this ensures that argmax will always give a valid action
-        index = np.unravel_index(np.argmax(out-mask*(np.min(out)-1.0)), mask.shape) 
+        index = np.unravel_index(np.argmax(out*mask), mask.shape)
         return index
+
+    # Returns the row,col of a valid action with the max future reward
+    def get_max_action(self):
+        self.qn.eval()
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        sorted_idx = np.argsort(out, axis=None)
+        for idx in sorted_idx:
+            idx = np.unravel_index(idx, out.shape) 
+            if self.gameboard.board[idx] == 0:
+                return idx
+    
+    def get_max_action_slower(self):
+        self.qn.eval()
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        mask = np.abs(self.gameboard.board) != 0 # Mask for valid actions
+        ma = np.ma.masked_array(out, mask=mask)
+        return np.unravel_index(np.ma.argmax(ma), (15,15))
 
     def select_action(self):
         if np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
