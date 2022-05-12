@@ -78,6 +78,7 @@ class GameBoard:
         )
 
     def move(self, row, col):
+        # TODO: returns 0 on a draw, is that OK? think it should be OK!
         assert self.board[row,col] == 0     # double check that it is a legal move
         
         if self.piece == -1:
