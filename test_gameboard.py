@@ -207,16 +207,3 @@ for test in test_fuctions:
     pass
 print("--- Passed all tests in %s seconds ---" % (time.time() - start_time))
 
-"""
-gameboard = GameBoard(15, 15)
-agent = TDQNAgent(gameboard=gameboard)
-old_states = np.random.randint(-1,2, (32,1,15,15))
-new_states = np.random.randint(-1,2, (32,1,15,15))
-actions = np.zeros((32,15,15), dtype=bool)
-actions[0,0,0] = 1
-actions[1,1,1] = 1
-rewards = np.random.randint(-1,2, 32)
-terminal_mask = np.random.randint(0,2, 32, dtype=bool)
-#agent.reinforce([torch.as_tensor(old_states, dtype=torch.float64), actions,rewards,torch.as_tensor(new_states, dtype=torch.float64), terminal_mask])
-agent.turn()
-"""
