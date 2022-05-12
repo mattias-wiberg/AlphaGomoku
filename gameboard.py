@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import imagesc as sc
 
 class GameBoard:
@@ -77,5 +76,4 @@ class GameBoard:
             self.gameover = True
         else:
             self.piece *= -1 # Alternate between white and black
-        # TODO: reward MUST have a sign for testing cases to work correctly, so take that into account when adding it into the transition
         return reward

@@ -28,14 +28,14 @@ action_masks = np.zeros((10000, 15, 15))
 rewards = np.zeros(10000)
 new_states = torch.zeros((10000, 1, 15, 15))
 terminal_masks = np.zeros(10000)
-legal_action_new_state_mask = np.zeros((10000,15,15))
+illegal_action_new_state_mask = np.zeros((10000,15,15))
 for i in range(10000):
     old_states[i] = torch.as_tensor(np.random.randint(-1,2, (1,15,15)), dtype=torch.float64)
     action_masks[i] = np.random.randint(0,2,(15,15),dtype=bool)
     rewards[i] = np.random.randint(-1,2)
     new_states[i] = torch.as_tensor(np.random.randint(-1,2, (1,15,15)), dtype=torch.float64)
     terminal_masks[i] = np.random.randint(0,2,dtype=bool)
-    legal_action_new_state_mask[i] = np.random.randint(-1,2, (15,15)) == 0
+    illegal_action_new_state_mask[i] = np.random.randint(-1,2, (15,15)) == 0
 #### INIT ####
 
 
@@ -46,7 +46,7 @@ action_masks_batch = action_masks[samples]
 rewards_batch = rewards[samples]
 new_states_batch = new_states[samples]
 terminal_masks_batch = terminal_masks[samples]
-legal_action_new_state_mask_batch = legal_action_new_state_mask[samples]
+illegal_action_new_state_mask_batch = illegal_action_new_state_mask[samples]
 
 #### BENCHMARK TENSORS ####
 start_time = time.time()
@@ -56,7 +56,7 @@ for i in range(n_moves):
     rewards[idx] = np.random.randint(-1,2)
     new_states[idx] = torch.as_tensor(np.random.randint(-1,2, (1,15,15)), dtype=torch.float64)
     terminal_masks[idx] = np.random.randint(0,2,dtype=bool)
-    legal_action_new_state_mask[idx] = np.random.randint(-1,2, (1,15,15)) == 0
+    illegal_action_new_state_mask[idx] = np.random.randint(-1,2, (1,15,15)) == 0
     
     samples = random.sample(range(10000), 32)
     old_states_batch = old_states[samples]
@@ -64,7 +64,7 @@ for i in range(n_moves):
     rewards_batch = rewards[samples]
     new_states_batch = new_states[samples]
     terminal_masks_batch = terminal_masks[samples]
-    legal_action_new_state_mask_batch = legal_action_new_state_mask[samples]
+    illegal_action_new_state_mask_batch = illegal_action_new_state_mask[samples]
 
     if idx == 9999:
         idx = 0
@@ -96,7 +96,7 @@ for i in range(n_moves):
     rewards_batch = np.array([x.reward for x in batch])
     new_states_batch = torch.stack([x.new_state for x in batch])
     terminal_masks_batch = np.array([x.terminal_mask for x in batch])
-    legal_action_new_state_mask_batch = np.array([x.legal_action_new_state_mask for x in batch])
+    illegal_action_new_state_mask_batch = np.array([x.illegal_action_new_state_mask for x in batch])
     if i % 1000 == 0:
         print(f"{i/n_moves}")
 print("--- List of tensors: %s seconds ---" % (time.time() - start_time))

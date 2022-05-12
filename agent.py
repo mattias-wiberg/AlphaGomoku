@@ -6,7 +6,7 @@ import random
 from collections import namedtuple
 
 Transition = namedtuple("Transition", 
-                        ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "legal_action_new_state_mask"))
+                        ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
 
 class QN(torch.nn.Module):
     def __init__(self):
@@ -92,29 +92,26 @@ class TDQNAgent:
         else: 
             self.action = self.get_max_action()
         
-    def reinforce(self,batch):
-        # batch: list of transitions
-        # transition: tuple of old_states, action_mask, rewards, new_states, terminal_mask, legal_action_new_states_mask
-        # TODO: fix this
+    def reinforce(self, old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch):
+        # old_states_batch: tensor (32,1,15,15)
+        # action_masks_batch: numpy (32,15,15)
+        # rewards_batch: numpy (32)
+        # new_states_batch: tensor (32,1,15,15)
+        # terminal_masks_batch: numpy (32)
+        # illegal_action_new_state_mask_batch: numpy (32,15,15)
         self.qn.train()
         self.qnhat.eval()
-        old_states = batch[0]   # (32,1,15,15)
-        action_mask = batch[1]  # (32,15,15)
-        rewards = batch[2]      # (32)
-        new_states = batch[3]   # (32,1,15,15)
-        terminal_mask = batch[4]# (32)
-        legal_action_new_states_mask = batch[5] # (32,15,15), torch.squeeze(new_states) == 0
-        predictions = self.qn(old_states)[action_mask]
+        predictions = self.qn(old_states_batch)[action_masks_batch]
         with torch.no_grad():
-            expected_future_reward = self.qnhat(new_states)
-            expected_future_reward[legal_action_new_states_mask] = -np.infty
+            expected_future_reward = self.qnhat(new_states_batch)
+            expected_future_reward[illegal_action_new_state_mask_batch] = -np.infty
             targets = torch.max(torch.reshape(expected_future_reward, (32,15*15)), 1)[0]
-            targets[terminal_mask] = 0
-            targets += rewards
+            targets[terminal_masks_batch] = 0
+            targets += rewards_batch
         loss = self.criterion(predictions,targets)
-        self.optimizers.zero_grad()
+        self.optimizer.zero_grad()
         loss.backward()
-        self.optimizers.step()
+        self.optimizer.step()
 
     def turn(self):
         if self.gameboard.gameover:
@@ -139,30 +136,45 @@ class TDQNAgent:
         else:
             self.select_action()
 
-            transition = Transition()            
-            transition.old_state = torch.as_tensor(self.gameboard.board, dtype=torch.float64)
-            transition.action_mask = np.zeros((32,15,15), dtype=bool)
-            transition.action_mask[self.action[0], self.action[1]] = 1
+            old_state = torch.reshape(torch.as_tensor(self.gameboard.board, dtype=torch.float64), (1,15,15))
+            action_mask = np.zeros((15,15), dtype=bool)
+            action_mask[self.action[0], self.action[1]] = 1
 
             reward = self.gameboard.move(self.action[0], self.action[1])
             reward = abs(reward) # Reward is always positive
             self.reward_tots[self.episode] += reward
 
-            transition.reward = reward
-            transition.terminal_mask = reward
-            transition.new_state = torch.as_tensor(self.gameboard.board, dtype=torch.float64)
-            transition.legal_action_new_state_mask = self.gameboard.board == 0
-            self.last_2_transitions.append(transition)
+            self.last_2_transitions.append(Transition(
+                                            old_state=old_state,
+                                            action_mask=action_mask,
+                                            reward=reward,
+                                            new_state=torch.reshape(torch.as_tensor(self.gameboard.board, dtype=torch.float64), (1,15,15)),
+                                            terminal_mask=reward,
+                                            illegal_action_new_state_mask=self.gameboard.board != 0
+                                            ))
 
             if len(self.last_2_transitions) == 3:
                 self.exp_buffer.append(self.last_2_transitions.pop(0))
             if reward:
                 # the previus move was a losing move
-                self.last_2_transitions[0].reward = -1
-                self.last_2_transitions[0].terminal_mask = 0
+                # tuples are immutable, so need to make a new tuple
+                self.last_2_transitions[0] = Transition(
+                    old_state=self.last_2_transitions[0].old_state,
+                    action_mask=self.last_2_transitions[0].action_mask,
+                    reward=-1,
+                    new_state=self.last_2_transitions[0].new_state,
+                    terminal_mask=1,
+                    illegal_action_new_state_mask=self.last_2_transitions[0].illegal_action_new_state_mask
+                )
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 batch = random.sample(self.exp_buffer, k=self.batch_size)
-                self.reinforce(batch)
+                old_states_batch = torch.stack([x.old_state for x in batch])
+                action_masks_batch = np.array([x.action_mask for x in batch])
+                rewards_batch = np.array([x.reward for x in batch])
+                new_states_batch = torch.stack([x.new_state for x in batch])
+                terminal_masks_batch = np.array([x.terminal_mask for x in batch])
+                illegal_action_new_state_mask_batch = np.array([x.illegal_action_new_state_mask for x in batch])
+                self.reinforce(old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch)
                 if len(self.exp_buffer) >= self.replay_buffer_size + 2:
                     self.exp_buffer.pop(0)
