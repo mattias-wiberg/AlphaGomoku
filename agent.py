@@ -60,7 +60,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action_slow(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         mask = np.abs(self.gameboard.board) == 0 # Mask for valid actions
         if out.min() <= 0: # Shift all valid actions positive > 0
             out[mask] += abs(out.min()) + 1.0
@@ -72,7 +72,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         sorted_idx = np.argsort(out, axis=None)
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
@@ -81,7 +81,7 @@ class TDQNAgent:
     
     def get_max_action_slower(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         mask = np.abs(self.gameboard.board) != 0 # Mask for valid actions
         ma = np.ma.masked_array(out, mask=mask)
         return np.unravel_index(np.ma.argmax(ma), (15,15))
@@ -136,7 +136,8 @@ class TDQNAgent:
         else:
             self.select_action()
 
-            old_state = torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,15,15))
+            old_piece = self.gameboard.piece
+            old_state = torch.reshape(torch.tensor(self.gameboard.board*old_piece, dtype=torch.float64), (1,15,15))
             action_mask = np.zeros((15,15), dtype=bool)
             action_mask[self.action[0], self.action[1]] = 1
 
@@ -148,7 +149,7 @@ class TDQNAgent:
                                             old_state=old_state,
                                             action_mask=action_mask,
                                             reward=reward,
-                                            new_state=torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,15,15)),
+                                            new_state=torch.reshape(torch.tensor(self.gameboard.board*old_piece, dtype=torch.float64), (1,15,15)),
                                             terminal_mask=reward,
                                             illegal_action_new_state_mask=self.gameboard.board != 0
                                             ))
