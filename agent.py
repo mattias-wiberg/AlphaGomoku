@@ -38,7 +38,6 @@ class TDQNAgent:
         self.sync_target_episode_count=sync_target_episode_count
         self.episode=0
         self.episode_count=episode_count
-        self.reward_tots=[0]*episode_count
         self.gameboard = gameboard
         self.qn = QN()
         self.qnhat = copy.deepcopy(self.qn)
@@ -164,7 +163,6 @@ class TDQNAgent:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
                 if self.episode in saveEpisodes:
                     torch.save(self.qn.state_dict(), 'qn.pth')
-                    pickle.dump(self.reward_tots, open('reward_tots.p', 'wb'))
             
             if self.episode>=self.episode_count:
                 return
