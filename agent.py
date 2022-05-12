@@ -6,7 +6,7 @@ import random
 from collections import namedtuple
 
 Transition = namedtuple("Transition", 
-                        ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
+                        ("old_state", "old_piece", "action_mask", "reward", "new_state", "new_piece", "terminal_mask", "illegal_action_new_state_mask"))
 
 class QN(torch.nn.Module):
     def __init__(self):
@@ -15,12 +15,13 @@ class QN(torch.nn.Module):
         self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
         self.flatten_1 = torch.nn.Flatten()
 
-        self.fc1 = torch.nn.Linear(1000, 1000, dtype=torch.float64)
-        self.fc2 = torch.nn.Linear(1000, 225, dtype=torch.float64)
+        self.fc1 = torch.nn.Linear(1001, 1001, dtype=torch.float64)
+        self.fc2 = torch.nn.Linear(1001, 225, dtype=torch.float64)
         self.fc3 = torch.nn.Linear(225, 225, dtype=torch.float64)
     
-    def forward(self, x):
+    def forward(self, x, piece):
         out = self.flatten_1(self.pool_1(torch.relu(self.conv_1(x))))
+        out = torch.cat((out, piece), dim=1)
 
         out = torch.relu(self.fc1(out))
         out = torch.relu(self.fc2(out))
@@ -72,7 +73,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,1,15,15)), torch.reshape(torch.tensor(self.gameboard.piece), (1,1))).detach().numpy()[0]
         sorted_idx = np.argsort(out, axis=None)
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
@@ -92,18 +93,20 @@ class TDQNAgent:
         else: 
             self.action = self.get_max_action()
         
-    def reinforce(self, old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch):
+    def reinforce(self, old_states_batch, old_pieces_batch, action_masks_batch, rewards_batch, new_states_batch, new_pieces_batch, terminal_masks_batch, illegal_action_new_state_mask_batch):
         # old_states_batch: tensor (32,1,15,15)
+        # old_pieces_batch: tensor (32,1)
         # action_masks_batch: numpy (32,15,15)
         # rewards_batch: numpy (32)
         # new_states_batch: tensor (32,1,15,15)
+        # new_pieces_batch: tensor (32,1)
         # terminal_masks_batch: numpy (32)
         # illegal_action_new_state_mask_batch: numpy (32,15,15)
         self.qn.train()
         self.qnhat.eval()
-        predictions = self.qn(old_states_batch)[action_masks_batch]
+        predictions = self.qn(old_states_batch, old_pieces_batch)[action_masks_batch]
         with torch.no_grad():
-            expected_future_reward = self.qnhat(new_states_batch)
+            expected_future_reward = self.qnhat(new_states_batch, new_pieces_batch)
             expected_future_reward[illegal_action_new_state_mask_batch] = -np.infty
             targets = torch.max(torch.reshape(expected_future_reward, (32,15*15)), 1)[0]
             targets[terminal_masks_batch] = 0
@@ -136,7 +139,8 @@ class TDQNAgent:
         else:
             self.select_action()
 
-            old_state = torch.reshape(torch.as_tensor(self.gameboard.board, dtype=torch.float64), (1,15,15))
+            old_state = torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,15,15))
+            old_piece = self.gameboard.piece
             action_mask = np.zeros((15,15), dtype=bool)
             action_mask[self.action[0], self.action[1]] = 1
 
@@ -146,9 +150,11 @@ class TDQNAgent:
 
             self.last_2_transitions.append(Transition(
                                             old_state=old_state,
+                                            old_piece=old_piece,
                                             action_mask=action_mask,
                                             reward=reward,
-                                            new_state=torch.reshape(torch.as_tensor(self.gameboard.board, dtype=torch.float64), (1,15,15)),
+                                            new_state=torch.reshape(torch.tensor(self.gameboard.board, dtype=torch.float64), (1,15,15)),
+                                            new_piece=self.gameboard.piece,
                                             terminal_mask=reward,
                                             illegal_action_new_state_mask=self.gameboard.board != 0
                                             ))
@@ -160,9 +166,11 @@ class TDQNAgent:
                 # tuples are immutable, so need to make a new tuple
                 self.last_2_transitions[0] = Transition(
                     old_state=self.last_2_transitions[0].old_state,
+                    old_piece=self.last_2_transitions[0].old_piece,
                     action_mask=self.last_2_transitions[0].action_mask,
                     reward=-1,
                     new_state=self.last_2_transitions[0].new_state,
+                    new_piece=self.last_2_transitions[0].new_piece,
                     terminal_mask=1,
                     illegal_action_new_state_mask=self.last_2_transitions[0].illegal_action_new_state_mask
                 )
@@ -170,11 +178,13 @@ class TDQNAgent:
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 batch = random.sample(self.exp_buffer, k=self.batch_size)
                 old_states_batch = torch.stack([x.old_state for x in batch])
+                old_pieces_batch = torch.reshape(torch.tensor([x.old_piece for x in batch]), (self.batch_size,1))
                 action_masks_batch = np.array([x.action_mask for x in batch])
                 rewards_batch = np.array([x.reward for x in batch])
                 new_states_batch = torch.stack([x.new_state for x in batch])
+                new_pieces_batch = torch.reshape(torch.tensor([x.new_piece for x in batch]), (self.batch_size,1))
                 terminal_masks_batch = np.array([x.terminal_mask for x in batch])
                 illegal_action_new_state_mask_batch = np.array([x.illegal_action_new_state_mask for x in batch])
-                self.reinforce(old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch)
+                self.reinforce(old_states_batch, old_pieces_batch, action_masks_batch, rewards_batch, new_states_batch, new_pieces_batch, terminal_masks_batch, illegal_action_new_state_mask_batch)
                 if len(self.exp_buffer) >= self.replay_buffer_size + 2:
                     self.exp_buffer.pop(0)
