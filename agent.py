@@ -60,7 +60,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action_slow(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         mask = np.abs(self.gameboard.board) == 0 # Mask for valid actions
         if out.min() <= 0: # Shift all valid actions positive > 0
             out[mask] += abs(out.min()) + 1.0
@@ -72,7 +72,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         sorted_idx = np.argsort(out, axis=None)
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
@@ -81,7 +81,7 @@ class TDQNAgent:
     
     def get_max_action_slower(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
         mask = np.abs(self.gameboard.board) != 0 # Mask for valid actions
         ma = np.ma.masked_array(out, mask=mask)
         return np.unravel_index(np.ma.argmax(ma), (15,15))
@@ -116,6 +116,32 @@ class TDQNAgent:
     def turn(self):
         if self.gameboard.gameover:
             self.episode+=1
+
+            # black transitions (-1)
+            action_mask = np.zeros((15,15), dtype=bool)
+            action_mask[self.gameboard.black_move_history[0][0], self.gameboard.black_move_history[0][1]] = 1
+            black_terminal_transition = Transition(
+                            old_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[0]*-1, dtype=torch.float64), (1,15,15)),
+                            action_mask=action_mask,
+                            reward=reward*-1,   # reward: -1/1 black won/white won
+                            new_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[1]*-1, dtype=torch.float64), (1,15,15)),
+                            terminal_mask=True,
+                            illegal_action_new_state_mask=self.gameboard.black_to_play_history[1] != 0
+                            )
+            self.exp_buffer.append(black_terminal_transition)
+            
+            # white transitions (1)
+            action_mask = np.zeros((15,15), dtype=bool)
+            action_mask[self.gameboard.white_move_history[0][0], self.gameboard.white_move_history[0][1]] = 1
+            white_terminal_transition = Transition(
+                            old_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[0], dtype=torch.float64), (1,15,15)),
+                            action_mask=action_mask,
+                            reward=reward,  # reward: -1/1 black won/white won
+                            new_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[1], dtype=torch.float64), (1,15,15)),
+                            terminal_mask=True,
+                            illegal_action_new_state_mask=self.gameboard.white_to_play_history[1] != 0
+                            )
+            self.exp_buffer.append(white_terminal_transition)
             
             if self.episode%100==0:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ',str(np.mean(self.reward_tots[self.episode-100:self.episode])),')')
@@ -136,37 +162,34 @@ class TDQNAgent:
         else:
             self.select_action()
 
-            old_piece = self.gameboard.piece
-            old_state = torch.reshape(torch.tensor(self.gameboard.board*old_piece, dtype=torch.float64), (1,15,15))
-            action_mask = np.zeros((15,15), dtype=bool)
-            action_mask[self.action[0], self.action[1]] = 1
-
             reward = self.gameboard.move(self.action[0], self.action[1])
-            reward = abs(reward) # Reward is always positive
-            self.reward_tots[self.episode] += reward
+            self.reward_tots[self.episode] += 0 # TODO: fix
 
-            self.last_2_transitions.append(Transition(
-                                            old_state=old_state,
-                                            action_mask=action_mask,
-                                            reward=reward,
-                                            new_state=torch.reshape(torch.tensor(self.gameboard.board*old_piece, dtype=torch.float64), (1,15,15)),
-                                            terminal_mask=reward,
-                                            illegal_action_new_state_mask=self.gameboard.board != 0
-                                            ))
+            if not self.gameboard.gameover and self.gameboard.piece == -1 and len(self.gameboard.black_to_play_history) == 2:
+                # black transitions (-1)
+                action_mask = np.zeros((15,15), dtype=bool)
+                action_mask[self.gameboard.black_move_history[0][0], self.gameboard.black_move_history[0][1]] = 1
+                self.exp_buffer.append(Transition(
+                                old_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[0]*-1, dtype=torch.float64), (1,15,15)),
+                                action_mask=action_mask,
+                                reward=0,
+                                new_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[1]*-1, dtype=torch.float64), (1,15,15)),
+                                terminal_mask=False,
+                                illegal_action_new_state_mask=self.gameboard.black_to_play_history[1] != 0
+                                ))
+            elif not self.gameboard.gameover and self.gameboard.piece == 1 and len(self.gameboard.white_to_play_history) == 2:
+                # white transitions (1)
+                action_mask = np.zeros((15,15), dtype=bool)
+                action_mask[self.gameboard.white_move_history[0][0], self.gameboard.white_move_history[0][1]] = 1
+                self.exp_buffer.append(Transition(
+                                old_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[0], dtype=torch.float64), (1,15,15)),
+                                action_mask=action_mask,
+                                reward=0,
+                                new_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[1], dtype=torch.float64), (1,15,15)),
+                                terminal_mask=False,
+                                illegal_action_new_state_mask=self.gameboard.white_to_play_history[1] != 0
+                                ))
 
-            if len(self.last_2_transitions) == 3:
-                self.exp_buffer.append(self.last_2_transitions.pop(0))
-            if reward:
-                # the previus move was a losing move
-                # tuples are immutable, so need to make a new tuple
-                self.last_2_transitions[0] = Transition(
-                    old_state=self.last_2_transitions[0].old_state,
-                    action_mask=self.last_2_transitions[0].action_mask,
-                    reward=-1,
-                    new_state=self.last_2_transitions[0].new_state,
-                    terminal_mask=1,
-                    illegal_action_new_state_mask=self.last_2_transitions[0].illegal_action_new_state_mask
-                )
 
             if len(self.exp_buffer) >= self.replay_buffer_size:
                 batch = random.sample(self.exp_buffer, k=self.batch_size)
