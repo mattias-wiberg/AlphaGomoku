@@ -29,7 +29,7 @@ class QN(torch.nn.Module):
         return out
 
 class TDQNAgent:
-    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,batch_size=32,sync_target_episode_count=100,episode_count=10000):
+    def __init__(self,gameboard,alpha=0.1,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,batch_size=32,sync_target_episode_count=100,episode_count=10000):
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
