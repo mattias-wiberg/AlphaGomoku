@@ -47,6 +47,7 @@ class TDQNAgent:
         self.last_2_transitions = []
         self.current_episode_buffer = []
         self.reward = 0
+        self.moves_tots = []
 
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
@@ -120,6 +121,7 @@ class TDQNAgent:
     def turn(self):
         if self.gameboard.gameover:
             self.episode+=1
+            self.moves_tots.append(self.gameboard.n_moves)
 
             # black transitions (-1)
             action_mask = torch.zeros((15,15), dtype=torch.bool)
@@ -157,15 +159,16 @@ class TDQNAgent:
             self.current_episode_buffer = []
             
             if self.episode%100==0:
-                print('episode '+str(self.episode)+'/'+str(self.episode_count))
+                print('episode '+str(self.episode)+'/'+str(self.episode_count) + ' mean moves: '+str(np.mean(self.moves_tots[-100:])))
             
             if self.episode%1000==0:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
                 if self.episode in saveEpisodes:
+                    pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
                     torch.save(self.qn.state_dict(), 'qn.pth')
             
             if self.episode>=self.episode_count:
-                return
+                SystemExit(0)
             else:
                 if (self.episode % self.sync_target_episode_count)==0:
                     self.qnhat = copy.deepcopy(self.qn)

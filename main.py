@@ -5,4 +5,3 @@ gameboard = GameBoard(15, 15)
 agent = TDQNAgent(gameboard=gameboard)
 while True:
     agent.turn()
-
