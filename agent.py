@@ -188,7 +188,8 @@ class TDQNAgent:
                                 terminal_mask=False,
                                 illegal_action_new_state_mask=torch.tensor(self.gameboard.black_to_play_history[1] != 0)
                                 ))
-            elif not self.gameboard.gameover and self.gameboard.piece == 1 and len(self.gameboard.white_to_play_history) == 2:
+
+            if not self.gameboard.gameover and self.gameboard.piece == 1 and len(self.gameboard.white_to_play_history) == 2:
                 # white transitions (1)
                 action_mask = torch.zeros((15,15), dtype=torch.bool)
                 action_mask[self.gameboard.white_move_history[0][0], self.gameboard.white_move_history[0][1]] = 1
