@@ -188,7 +188,7 @@ def test_get_max_action_slower():
     print("Passed agent.test_get_max_action_slower()")
     print("Total time: ", time_total)
 
-#test_plot_board()
+test_plot_board()
 test_fuctions = [
     test_get_max_action,
     test_get_max_action_slow,
