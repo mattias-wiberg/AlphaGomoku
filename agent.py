@@ -47,6 +47,7 @@ class TDQNAgent:
         self.optimizer = torch.optim.Adam(self.qn.parameters(), lr=self.alpha)
         self.last_2_transitions = []
         self.current_episode_buffer = []
+        self.reward = 0
 
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
@@ -100,7 +101,7 @@ class TDQNAgent:
         with torch.no_grad():
             expected_future_reward = self.qnhat(new_states_batch)
             expected_future_reward[illegal_action_new_state_mask_batch] = -np.infty
-            targets = torch.max(torch.reshape(expected_future_reward, (32,15*15)), 1)[0]
+            targets = torch.max(torch.reshape(expected_future_reward, (old_states_batch.shape[0],15*15)), 1)[0]
             targets[terminal_masks_batch] = 0
             targets += rewards_batch
         loss = self.criterion(predictions,targets)
@@ -110,11 +111,11 @@ class TDQNAgent:
 
     def batch_and_reinforce(self, batch):
         old_states_batch = torch.stack([x.old_state for x in batch])
-        action_masks_batch = np.array([x.action_mask for x in batch])
-        rewards_batch = np.array([x.reward for x in batch])
+        action_masks_batch = torch.stack([x.action_mask for x in batch])
+        rewards_batch = torch.tensor([x.reward for x in batch])
         new_states_batch = torch.stack([x.new_state for x in batch])
-        terminal_masks_batch = np.array([x.terminal_mask for x in batch])
-        illegal_action_new_state_mask_batch = np.array([x.illegal_action_new_state_mask for x in batch])
+        terminal_masks_batch = torch.tensor([x.terminal_mask for x in batch])
+        illegal_action_new_state_mask_batch = torch.stack([x.illegal_action_new_state_mask for x in batch])
         self.reinforce(old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch)
 
     def turn(self):
@@ -122,29 +123,29 @@ class TDQNAgent:
             self.episode+=1
 
             # black transitions (-1)
-            action_mask = np.zeros((15,15), dtype=bool)
+            action_mask = torch.zeros((15,15), dtype=torch.bool)
             action_mask[self.gameboard.black_move_history[0][0], self.gameboard.black_move_history[0][1]] = 1
             black_terminal_transition = Transition(
                             old_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[0]*-1, dtype=torch.float64), (1,15,15)),
                             action_mask=action_mask,
-                            reward=reward*-1,   # reward: -1/1 black won/white won
+                            reward=self.reward*-1,   # reward: -1/1 black won/white won
                             new_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[1]*-1, dtype=torch.float64), (1,15,15)),
                             terminal_mask=True,
-                            illegal_action_new_state_mask=self.gameboard.black_to_play_history[1] != 0
+                            illegal_action_new_state_mask=torch.tensor(self.gameboard.black_to_play_history[1] != 0)
                             )
             self.terminal_buffer.append(black_terminal_transition)
             self.current_episode_buffer.append(black_terminal_transition)
             
             # white transitions (1)
-            action_mask = np.zeros((15,15), dtype=bool)
+            action_mask = torch.zeros((15,15), dtype=torch.bool)
             action_mask[self.gameboard.white_move_history[0][0], self.gameboard.white_move_history[0][1]] = 1
             white_terminal_transition = Transition(
                             old_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[0], dtype=torch.float64), (1,15,15)),
                             action_mask=action_mask,
-                            reward=reward,  # reward: -1/1 black won/white won
+                            reward=self.reward,  # reward: -1/1 black won/white won
                             new_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[1], dtype=torch.float64), (1,15,15)),
                             terminal_mask=True,
-                            illegal_action_new_state_mask=self.gameboard.white_to_play_history[1] != 0
+                            illegal_action_new_state_mask=torch.tensor(self.gameboard.white_to_play_history[1] != 0)
                             )
             self.terminal_buffer.append(white_terminal_transition)
             self.current_episode_buffer.append(white_terminal_transition)
@@ -157,7 +158,7 @@ class TDQNAgent:
             self.current_episode_buffer = []
             
             if self.episode%100==0:
-                print('episode '+str(self.episode)+'/'+str(self.episode_count)+' (reward: ',str(np.mean(self.reward_tots[self.episode-100:self.episode])),')')
+                print('episode '+str(self.episode)+'/'+str(self.episode_count))
             
             if self.episode%1000==0:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
@@ -168,19 +169,18 @@ class TDQNAgent:
             if self.episode>=self.episode_count:
                 return
             else:
-                if (len(self.exp_buffer) >= self.replay_buffer_size) and ((self.episode % self.sync_target_episode_count)==0):
+                if (self.episode % self.sync_target_episode_count)==0:
                     self.qnhat = copy.deepcopy(self.qn)
                 self.gameboard.restart()
             
         else:
             self.select_action()
 
-            reward = self.gameboard.move(self.action[0], self.action[1])
-            self.reward_tots[self.episode] += 0 # TODO: fix
+            self.reward = self.gameboard.move(self.action[0], self.action[1])
 
             if not self.gameboard.gameover and self.gameboard.piece == -1 and len(self.gameboard.black_to_play_history) == 2:
                 # black transitions (-1)
-                action_mask = np.zeros((15,15), dtype=bool)
+                action_mask = torch.zeros((15,15), dtype=torch.bool)
                 action_mask[self.gameboard.black_move_history[0][0], self.gameboard.black_move_history[0][1]] = 1
                 self.current_episode_buffer.append(Transition(
                                 old_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[0]*-1, dtype=torch.float64), (1,15,15)),
@@ -188,11 +188,11 @@ class TDQNAgent:
                                 reward=0,
                                 new_state=torch.reshape(torch.tensor(self.gameboard.black_to_play_history[1]*-1, dtype=torch.float64), (1,15,15)),
                                 terminal_mask=False,
-                                illegal_action_new_state_mask=self.gameboard.black_to_play_history[1] != 0
+                                illegal_action_new_state_mask=torch.tensor(self.gameboard.black_to_play_history[1] != 0)
                                 ))
             elif not self.gameboard.gameover and self.gameboard.piece == 1 and len(self.gameboard.white_to_play_history) == 2:
                 # white transitions (1)
-                action_mask = np.zeros((15,15), dtype=bool)
+                action_mask = torch.zeros((15,15), dtype=torch.bool)
                 action_mask[self.gameboard.white_move_history[0][0], self.gameboard.white_move_history[0][1]] = 1
                 self.current_episode_buffer.append(Transition(
                                 old_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[0], dtype=torch.float64), (1,15,15)),
@@ -200,6 +200,6 @@ class TDQNAgent:
                                 reward=0,
                                 new_state=torch.reshape(torch.tensor(self.gameboard.white_to_play_history[1], dtype=torch.float64), (1,15,15)),
                                 terminal_mask=False,
-                                illegal_action_new_state_mask=self.gameboard.white_to_play_history[1] != 0
+                                illegal_action_new_state_mask=torch.tensor(self.gameboard.white_to_play_history[1] != 0)
                                 ))
 
