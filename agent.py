@@ -118,7 +118,8 @@ class TDQNAgent:
         illegal_action_new_state_mask_batch = torch.stack([x.illegal_action_new_state_mask for x in batch])
         self.reinforce(old_states_batch, action_masks_batch, rewards_batch, new_states_batch, terminal_masks_batch, illegal_action_new_state_mask_batch)
 
-    def turn(self):
+    def turn(self, forced_move=None):
+        # forced_move used in select_action for testing purposes
         if self.gameboard.gameover:
             self.episode+=1
             self.moves_tots.append(self.gameboard.n_moves)
@@ -175,7 +176,11 @@ class TDQNAgent:
                 self.gameboard.restart()
             
         else:
-            self.select_action()
+            if forced_move is None:
+                self.select_action()
+            else:
+                self.action = forced_move
+
 
             self.reward = self.gameboard.move(self.action[0], self.action[1])
 

@@ -98,7 +98,7 @@ def test_move():
         gameboard = GameBoard(N_row, N_col)
         for move in test:
             reward = gameboard.move(move[0], move[1])
-            if reward != 0:
+            if gameboard.gameover:  # some tests have moves after game the game ends, so test that gameover is set correctly
                 break   
         assert reward == expected_outcomes[idx]
     print("Passed gameboard.move()")
