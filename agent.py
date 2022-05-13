@@ -135,7 +135,7 @@ class TDQNAgent:
             
             if self.episode%1000==0:
                 saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
-                if self.episode in saveEpisodes:
+                if self.episode % 1000 == 0:
                     pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
                     torch.save(self.qn.state_dict(), 'qn.pth')
             
