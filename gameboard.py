@@ -1,6 +1,5 @@
 import numpy as np
 import imagesc as sc
-import copy
 
 class GameBoard:
     def __init__(self,N_row,N_col):
@@ -13,20 +12,12 @@ class GameBoard:
         self.board = np.zeros((N_row, N_col), dtype=np.int8)    # assignment to tensors not allowed, so must use numpy
         self.gameover = False
         self.piece = -1
-        self.black_to_play_history = []
-        self.black_move_history = []
-        self.white_to_play_history = []
-        self.white_move_history = []
         self.n_moves = 0
 
     def restart(self):
         self.board = np.zeros((self.N_row, self.N_col), dtype=np.int8)
         self.gameover = False
         self.piece = -1
-        self.black_to_play_history = []
-        self.black_move_history = []
-        self.white_to_play_history = []
-        self.white_move_history = []
         self.n_moves = 0
 
     def get_seq_reward(self, sequence):
@@ -83,25 +74,13 @@ class GameBoard:
         # TODO: returns 0 on a draw, is that OK? think it should be OK!
         assert self.board[row,col] == 0     # double check that it is a legal move
         
-        if self.piece == -1:
-            self.black_to_play_history.append(copy.deepcopy(self.board))
-            self.black_move_history.append((row, col))
-            if len(self.black_to_play_history) == 3:
-                self.black_to_play_history.pop(0)
-                self.black_move_history.pop(0)
-        elif self.piece == 1:
-            self.white_to_play_history.append(copy.deepcopy(self.board))
-            self.white_move_history.append((row, col))
-            if len(self.white_to_play_history) == 3:
-                self.white_to_play_history.pop(0)
-                self.white_move_history.pop(0)
-
         self.board[row,col] = self.piece
         self.n_moves += 1
-        if self.n_moves >= 9:
+        if self.n_moves >= 9:   # need at least 9 moves to win
             reward = self.get_reward(row, col)
         else:
             reward = 0
+            
         if reward != 0:
             self.gameover = True
             self.piece *= -1

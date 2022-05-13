@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from agent import TDQNAgent
 import time
-import torch
 
 def visualize_moves(N_row, N_col, moves):
     board = np.zeros((N_row, N_col))
@@ -194,8 +193,8 @@ test_fuctions = [
     test_get_max_action_slow,
     test_get_max_action_slower,
     test_get_random_action,
-    #test_get_seq_reward,
-    #test_move
+    test_get_seq_reward,
+    test_move
 ]
 testi = 0
 print("--- Running tests ---")

@@ -79,33 +79,49 @@ test_moves = [
 
 expected_outcomes = [-1, 1, 0, -1, 0, -1, 0, 1, 1, -1, 1]
 
-# test that the move sequence go to -1/0/1
-n_episodes = 10
+n_episodes = 40
 for idx, test in enumerate(test_moves):
+    if expected_outcomes[idx] == 0:
+        continue    # can't test against draw outcomes since the model only learns maximum rewards
     gameboard = GameBoard(N_row, N_col)
-    agent = TDQNAgent(gameboard=gameboard, sync_target_episode_count=2)  # new agent per sequence
+    agent = TDQNAgent(gameboard=gameboard)  # new agent per sequence
 
     for episodeIdx in range(n_episodes):
         print(f"[TRAINING] Sequence {idx+1}/{len(test_moves)}, Episode {episodeIdx+1}/{n_episodes}")
         
+        # train on the sequence
         for move in test:
-            if move == test[-1]:
-                agent.turn(forced_move=move)    # do the last move
-                if expected_outcomes[idx] == 0:
-                    # agent won't learn if the episode doesn't end, so need to end it myself
-                    agent.gameboard.gameover = True
-                agent.turn(forced_move=move)    # learn and restart
-            else:
-                agent.turn(forced_move=move)
-        
-    # done training, assert that the expected values are correct
-    for move in test:
+            agent.turn(forced_move=move)
+            if agent.gameboard.gameover:    # some of the sequences have moves after the game has ended, so can't keep looping
+                break
+        agent.turn(forced_move=move)    # learn and reset the board
+    
+    # execute the sequence and assert that the expected reward for the winning sequence is 1 and -1 for the losing move
+    for move_idx, move in enumerate(test):
+        correct_expected_reward = expected_outcomes[idx] * agent.gameboard.piece
+        if correct_expected_reward != 1:
+            gameboard.move(move[0], move[1])
+            continue    # can only test against winning moves since that is what the model learns
+
         with torch.no_grad():
             q_table = agent.qn(torch.reshape(torch.tensor(agent.gameboard.board*agent.gameboard.piece, dtype=torch.float64), (1,1,15,15)))
-        expected_reward = q_table[0, move[0], move[1]].item()
-        assert round(expected_reward) == expected_outcomes[idx] * agent.gameboard.piece
-        gameboard.move(move[0], move[1])
-    
-        
+        expected_reward = round(q_table[0, move[0], move[1]].item())
+        assert expected_reward == correct_expected_reward
+
+        old_piece = gameboard.piece
+        reward = gameboard.move(move[0], move[1])
+        if agent.gameboard.gameover:
+            assert expected_reward == reward * old_piece
+            # undo the last two moves to assert that it knows the losing move reward is -1
+            gameboard.board[move[0], move[1]] = 0
+            losing_move = test[move_idx-1]
+            gameboard.board[losing_move[0], losing_move[1]] = 0
+            with torch.no_grad():
+                q_table = agent.qn(torch.reshape(torch.tensor(agent.gameboard.board*agent.gameboard.piece, dtype=torch.float64), (1,1,15,15)))
+            expected_reward = round(q_table[0, losing_move[0], losing_move[1]].item())
+            assert expected_reward == -1
+            break
+
+    assert reward == expected_outcomes[idx]
 
 
