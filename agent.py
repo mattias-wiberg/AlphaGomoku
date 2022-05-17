@@ -92,7 +92,7 @@ class TDQNAgent:
         return np.unravel_index(np.ma.argmax(ma), (15,15))
 
     def select_action(self):
-        if np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
+        if self.epsilon_scale != 0 and np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
             self.action = self.get_random_action()
         else: 
             self.action = self.get_max_action()

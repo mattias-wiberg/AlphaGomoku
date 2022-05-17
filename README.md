@@ -46,4 +46,8 @@ The board is defined as a matrix using:<br>
 - vary hyperparams (loss,optimizer,layers,neurons,activation functions)
 - read papers
 - give it an AI to play against: one just tries to get 5 in a row?
-- having it play against the same network might be causing some form of numerical instability/weird behaviour
+- having it play against the same network might be causing some form of numerical instability/weird behaviour?
+- have 1 (white) play as qnhat (unimproved) and then you can log rewards as well?
+
+## TO DO
+- interface to play against it

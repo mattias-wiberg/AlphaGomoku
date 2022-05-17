@@ -2,11 +2,11 @@ from gameboard import GameBoard
 from agent import TDQNAgent
 
 visualize = False
-strategy_file = 'qn.pth'
+strategy_file = ''
 
 gameboard = GameBoard(15, 15)
 if strategy_file:
-    agent = TDQNAgent(gameboard, episode_count=50000, epsilon_scale=1)
+    agent = TDQNAgent(gameboard, episode_count=50000, epsilon_scale=0)
 else:
     agent = TDQNAgent(gameboard=gameboard)
 if strategy_file:
