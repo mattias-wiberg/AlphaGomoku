@@ -40,14 +40,13 @@ The board is defined as a matrix using:<br>
     -> Use tanh on the last layer.
 
 ## To Try
-- Train it on the hard coded first so it knows how to win and learns to stop it?
 - two different agents or NN architectures?/Use two networks, play against older versions to see if it gets better?
 	-> different action depending on piece (qnhat for one of the pieces)
+    -> have 1 (white) play as qnhat (unimproved) and then you can log rewards as well?
+    -> having it play against the same network might be causing some form of numerical instability/weird behaviour?
 - vary hyperparams (loss,optimizer,layers,neurons,activation functions)
 - read papers
 - give it an AI to play against: one just tries to get 5 in a row?
-- having it play against the same network might be causing some form of numerical instability/weird behaviour?
-- have 1 (white) play as qnhat (unimproved) and then you can log rewards as well?
 
 ## TO DO
 - interface to play against it

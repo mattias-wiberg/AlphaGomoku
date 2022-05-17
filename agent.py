@@ -51,6 +51,8 @@ class TDQNAgent:
         self.last_2_transitions = []
         self.current_episode_buffer = []
         self.moves_tots = []
+        self.wins = []
+        self.black_win_frac = []
 
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
@@ -126,6 +128,7 @@ class TDQNAgent:
         if self.gameboard.gameover:
             self.episode+=1
             self.moves_tots.append(self.gameboard.n_moves)
+            self.black_win_frac.append(self.wins[-100:].count(-1) / 100)
 
             terminal_batch = random.sample(self.terminal_buffer, k=min(self.batch_size, len(self.terminal_buffer)))
             self.batch_and_reinforce(terminal_batch)
@@ -135,10 +138,12 @@ class TDQNAgent:
             self.current_episode_buffer = []
             
             if self.episode%100==0:
-                print('episode '+str(self.episode)+'/'+str(self.episode_count) + ' mean moves: '+str(np.mean(self.moves_tots[-100:])))
+                print(f'[{self.episode}/{self.episode_count}] mean moves: {np.mean(self.moves_tots[-100:])}, black win fraction: {round(self.black_win_frac[-1], 2)}')
             
             if self.episode % 1000 == 0:
                 pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
+                pickle.dump(self.wins, open('wins.p', 'wb'))
+                pickle.dump(self.black_win_frac, open('black_win_frac.p', 'wb'))
                 torch.save(self.qn.state_dict(), 'qn.pth')
             
             if self.episode>=self.episode_count:
@@ -157,6 +162,8 @@ class TDQNAgent:
             old_state = torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,15,15))
             old_piece = self.gameboard.piece
             reward = self.gameboard.move(self.action[0], self.action[1])
+            if self.gameboard.gameover:
+                self.wins.append(reward)
 
             action_mask = torch.zeros((15,15), dtype=torch.bool)
             action_mask[self.action[0], self.action[1]] = 1
