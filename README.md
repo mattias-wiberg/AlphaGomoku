@@ -24,4 +24,21 @@ The board is defined as a matrix using:<br>
 
  ### Selecting an action
  Masking the q table output of the network with the possible moves and then using the epsilon greedy policy.
- 
+
+## Observations
+- Not using convolution on the input seems to lead to much longer training times (not surprising since the weights are not shared anymore)
+    -> Use CNN on the input!
+- Removing pooling slowns down training due to larger dimensionality, but it seems to learn about as well in the end. Don't think we should have pooling; it's not a picture after all.
+    -> Don't use pooling!
+- Only having 1 filter also seems to learn about as well but the dimensionality is much smaller so it is thus faster.
+    -> Don't have too many filters (1 might be enough)!
+- If appending the board to the output of the convolution it seems that it won't work unless the board has first been passed through a dense layer.
+    -> Pass board through a dense layer before appending with convolutional output.
+
+## To Try
+- Tanh
+- Train it on the hard coded first so it knows how to win and learns to stop it?
+- two different agents or NN architectures?/Use two networks, play against older versions to see if it gets better?
+	-> different action depending on piece (qnhat for one of the pieces)
+- vary hyperparams (loss,optimizer,layers,neurons,activation functions)
+- read papers

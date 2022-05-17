@@ -10,16 +10,21 @@ Transition = namedtuple("Transition",
 class QN(torch.nn.Module):
     def __init__(self):
         super(QN, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=10, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
-        self.pool_1 = torch.nn.MaxPool2d(kernel_size=(2,2), stride=(1,1))
+        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
         self.flatten_1 = torch.nn.Flatten()
 
-        self.fc1 = torch.nn.Linear(1000, 1000, dtype=torch.float64)
-        self.fc2 = torch.nn.Linear(1000, 225, dtype=torch.float64)
+        self.fc0 = torch.nn.Linear(225, 225, dtype=torch.float64)
+        self.flatten_0 = torch.nn.Flatten()
+
+        self.fc1 = torch.nn.Linear(346, 346, dtype=torch.float64)
+        self.fc2 = torch.nn.Linear(346, 225, dtype=torch.float64)
         self.fc3 = torch.nn.Linear(225, 225, dtype=torch.float64)
     
     def forward(self, x):
-        out = self.flatten_1(self.pool_1(torch.relu(self.conv_1(x))))
+        out = self.flatten_1(torch.relu(self.conv_1(x)))
+        appended_board = torch.relu(self.fc0(self.flatten_0(x)))
+        
+        out = torch.cat((out, appended_board), 1)
 
         out = torch.relu(self.fc1(out))
         out = torch.relu(self.fc2(out))
