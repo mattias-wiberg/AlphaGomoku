@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import random
 from collections import namedtuple
+import sys
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
@@ -136,14 +137,12 @@ class TDQNAgent:
             if self.episode%100==0:
                 print('episode '+str(self.episode)+'/'+str(self.episode_count) + ' mean moves: '+str(np.mean(self.moves_tots[-100:])))
             
-            if self.episode%1000==0:
-                saveEpisodes=[1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000];
-                if self.episode % 1000 == 0:
-                    pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
-                    torch.save(self.qn.state_dict(), 'qn.pth')
+            if self.episode % 1000 == 0:
+                pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
+                torch.save(self.qn.state_dict(), 'qn.pth')
             
             if self.episode>=self.episode_count:
-                SystemExit(0)
+                sys.exit()
             else:
                 if (self.episode % self.sync_target_episode_count)==0:
                     self.qnhat.load_state_dict(self.qn.state_dict()) 

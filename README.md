@@ -45,3 +45,5 @@ The board is defined as a matrix using:<br>
 	-> different action depending on piece (qnhat for one of the pieces)
 - vary hyperparams (loss,optimizer,layers,neurons,activation functions)
 - read papers
+- give it an AI to play against: one just tries to get 5 in a row?
+- having it play against the same network might be causing some form of numerical instability/weird behaviour
