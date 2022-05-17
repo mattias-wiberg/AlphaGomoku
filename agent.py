@@ -4,32 +4,10 @@ import numpy as np
 import random
 from collections import namedtuple
 import sys
+from deep_network import QN
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
-
-class QN(torch.nn.Module):
-    def __init__(self):
-        super(QN, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
-        self.flatten_1 = torch.nn.Flatten()
-
-        self.fc0 = torch.nn.Linear(225, 225, dtype=torch.float64)
-        self.flatten_0 = torch.nn.Flatten()
-
-        self.fc1 = torch.nn.Linear(346, 346, dtype=torch.float64)
-        self.fc2 = torch.nn.Linear(346, 225, dtype=torch.float64)
-    
-    def forward(self, x):
-        out = self.flatten_1(torch.tanh(self.conv_1(x)))
-        appended_board = torch.tanh(self.fc0(self.flatten_0(x)))
-        
-        out = torch.cat((out, appended_board), 1)
-
-        out = torch.tanh(self.fc1(out))
-        out = torch.tanh(self.fc2(out))
-        out = torch.reshape(out,(x.shape[0],15,15))
-        return out
 
 class TDQNAgent:
     def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,batch_size=32,sync_target_episode_count=10,episode_count=10000):
@@ -53,6 +31,7 @@ class TDQNAgent:
         self.moves_tots = []
         self.wins = []
         self.black_win_frac = []
+        self.memory = []
 
     def load_strategy(self,strategy_file):
         self.qn.load_state_dict(torch.load(strategy_file))
@@ -130,11 +109,17 @@ class TDQNAgent:
             self.moves_tots.append(self.gameboard.n_moves)
             self.black_win_frac.append(self.wins[-100:].count(-1) / 100)
 
+            """
             terminal_batch = random.sample(self.terminal_buffer, k=min(self.batch_size, len(self.terminal_buffer)))
             self.batch_and_reinforce(terminal_batch)
             self.batch_and_reinforce(self.current_episode_buffer)
+            """
+            memory_batch = random.sample(self.memory, k=min(self.batch_size*50, len(self.memory)))
+            self.batch_and_reinforce(memory_batch)
             if len(self.terminal_buffer) >= self.terminal_replay_buffer_size + 2:
                 self.terminal_buffer.pop(0)
+            if len(self.memory) >= self.terminal_replay_buffer_size + 2:
+                self.memory.pop(0)
             self.current_episode_buffer = []
             
             if self.episode%100==0:
@@ -176,6 +161,7 @@ class TDQNAgent:
                             illegal_action_new_state_mask=torch.tensor(self.gameboard.board != 0)
                             )
             self.current_episode_buffer.append(transition)
+            self.memory.append(transition)
 
             if self.gameboard.gameover:
                 # the second to last transition was a losing move
@@ -187,5 +173,6 @@ class TDQNAgent:
                             terminal_mask=self.gameboard.gameover,  # CHANGED
                             illegal_action_new_state_mask=self.current_episode_buffer[-2].illegal_action_new_state_mask
                             )
+                self.memory[-2] = self.current_episode_buffer[-2]
                 self.terminal_buffer.append(self.current_episode_buffer[-2])
                 self.terminal_buffer.append(self.current_episode_buffer[-1])

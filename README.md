@@ -47,6 +47,5 @@ The board is defined as a matrix using:<br>
 - vary hyperparams (loss,optimizer,layers,neurons,activation functions)
 - read papers
 - give it an AI to play against: one just tries to get 5 in a row?
+- real replay buffer as well?
 
-## TO DO
-- interface to play against it
