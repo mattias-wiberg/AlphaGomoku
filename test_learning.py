@@ -79,7 +79,7 @@ test_moves = [
 
 expected_outcomes = [-1, 1, 0, -1, 0, -1, 0, 1, 1, -1, 1]
 
-n_episodes = 40
+n_episodes = 20
 for idx, test in enumerate(test_moves):
     if expected_outcomes[idx] == 0:
         continue    # can't test against draw outcomes since the model only learns maximum rewards

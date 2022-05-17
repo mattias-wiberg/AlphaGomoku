@@ -18,17 +18,15 @@ class QN(torch.nn.Module):
 
         self.fc1 = torch.nn.Linear(346, 346, dtype=torch.float64)
         self.fc2 = torch.nn.Linear(346, 225, dtype=torch.float64)
-        self.fc3 = torch.nn.Linear(225, 225, dtype=torch.float64)
     
     def forward(self, x):
-        out = self.flatten_1(torch.relu(self.conv_1(x)))
-        appended_board = torch.relu(self.fc0(self.flatten_0(x)))
+        out = self.flatten_1(torch.tanh(self.conv_1(x)))
+        appended_board = torch.tanh(self.fc0(self.flatten_0(x)))
         
         out = torch.cat((out, appended_board), 1)
 
-        out = torch.relu(self.fc1(out))
-        out = torch.relu(self.fc2(out))
-        out = self.fc3(out)
+        out = torch.tanh(self.fc1(out))
+        out = torch.tanh(self.fc2(out))
         out = torch.reshape(out,(x.shape[0],15,15))
         return out
 

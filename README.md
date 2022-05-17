@@ -34,9 +34,12 @@ The board is defined as a matrix using:<br>
     -> Don't have too many filters (1 might be enough)!
 - If appending the board to the output of the convolution it seems that it won't work unless the board has first been passed through a dense layer.
     -> Pass board through a dense layer before appending with convolutional output.
+- Seems to learn faster with tanh instead of relu. Perhaps not so weird since we should probably allow negative values since it is not a picture.
+    -> Use activation functions that also have a negative part?
+- Since the q_table is limited to [-1,1] it might be a very good idea to use tanh on the last layer instead of linear activation.
+    -> Use tanh on the last layer.
 
 ## To Try
-- Tanh
 - Train it on the hard coded first so it knows how to win and learns to stop it?
 - two different agents or NN architectures?/Use two networks, play against older versions to see if it gets better?
 	-> different action depending on piece (qnhat for one of the pieces)
