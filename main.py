@@ -8,10 +8,10 @@ human = 0
 human_start_piece = 1
 
 gameboard = GameBoard(15, 15)
-agent = TDQNAgent(gameboard)
+agent = TDQNAgent(gameboard, device="cpu", episode_count=50000, epsilon_scale=5000)
 
 if strategy_file:
-    agent.load_strategy(strategy_file)
+    agent.load_strategy(strategy_file, "moves_tots.p", "wins.p", "black_win_frac.p")
     if human:
         if human_start_piece == 1:
             while True:

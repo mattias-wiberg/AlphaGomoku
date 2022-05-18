@@ -28,7 +28,6 @@ class TDQNAgent:
         self.terminal_buffer = []
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.qn.parameters(), lr=self.alpha)
-        self.last_2_transitions = []
         self.current_episode_buffer = []
         self.moves_tots = []
         self.wins = []
@@ -36,13 +35,16 @@ class TDQNAgent:
         self.memory = []
         self.re_exploration = re_exploration
 
-    def load_strategy(self,strategy_file):
+    def load_strategy(self, strategy_file, moves_tots_file, wins_file, black_win_frac_file):
         if self.device == torch.device("cpu"):
             self.qn.load_state_dict(torch.load(strategy_file, map_location=torch.device("cpu")))
             self.qnhat.load_state_dict(self.qn.state_dict())
         else:
             self.qn.load_state_dict(torch.load(strategy_file))
             self.qnhat.load_state_dict(self.qn.state_dict())
+        self.moves_tots = pickle.load(open(moves_tots_file,"rb"))
+        self.wins = pickle.load(open(wins_file, "rb"))
+        self.black_win_frac = pickle.load(open(black_win_frac_file, "rb"))
 
     # Returns the row,col of a valid random action
     def get_random_action(self):
