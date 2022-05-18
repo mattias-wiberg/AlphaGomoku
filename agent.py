@@ -10,7 +10,8 @@ Transition = namedtuple("Transition",
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
 
 class TDQNAgent:
-    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,batch_size=32,sync_target_episode_count=10,episode_count=10000):
+    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,
+                batch_size=32,sync_target_episode_count=10,episode_count=10000, device="cpu"):
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
@@ -20,8 +21,9 @@ class TDQNAgent:
         self.episode=0
         self.episode_count=episode_count
         self.gameboard = gameboard
-        self.qn = QN()
-        self.qnhat = QN()
+        self.device = torch.device(device) 
+        self.qn = QN(self.device)
+        self.qnhat = QN(self.device)
         self.qnhat.load_state_dict(self.qn.state_dict())
         self.terminal_buffer = []
         self.criterion = torch.nn.MSELoss()
@@ -34,8 +36,12 @@ class TDQNAgent:
         self.memory = []
 
     def load_strategy(self,strategy_file):
-        self.qn.load_state_dict(torch.load(strategy_file))
-        self.qnhat.load_state_dict(self.qn.state_dict())     
+        if self.device == torch.device("cpu"):
+            self.qn.load_state_dict(torch.load(strategy_file, map_location=torch.device("cpu")))
+            self.qnhat.load_state_dict(self.qn.state_dict())
+        else:
+            self.qn.load_state_dict(torch.load(strategy_file))
+            self.qnhat.load_state_dict(self.qn.state_dict())
 
     # Returns the row,col of a valid random action
     def get_random_action(self):
@@ -46,7 +52,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action_slow(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
         mask = np.abs(self.gameboard.board) == 0 # Mask for valid actions
         if out.min() <= 0: # Shift all valid actions positive > 0
             out[mask] += abs(out.min()) + 1.0
@@ -58,7 +64,7 @@ class TDQNAgent:
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
         sorted_idx = np.flip(np.argsort(out, axis=None))
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
@@ -67,7 +73,7 @@ class TDQNAgent:
     
     def get_max_action_slower(self):
         self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().numpy()[0]
+        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
         mask = np.abs(self.gameboard.board) != 0 # Mask for valid actions
         ma = np.ma.masked_array(out, mask=mask)
         return np.unravel_index(np.ma.argmax(ma), (15,15))
@@ -87,7 +93,7 @@ class TDQNAgent:
             expected_future_reward[illegal_action_new_state_mask_batch] = -np.infty
             targets = torch.max(torch.reshape(expected_future_reward, (old_states_batch.shape[0],15*15)), 1)[0]
             targets[terminal_masks_batch] = 0
-            targets += rewards_batch
+            targets += rewards_batch.to(self.device)
         loss = self.criterion(predictions,targets)
         self.optimizer.zero_grad()
         loss.backward()

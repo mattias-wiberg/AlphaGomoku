@@ -1,7 +1,7 @@
 import torch
 
 class QN(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, device):
         super(QN, self).__init__()
         self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
         self.flatten_1 = torch.nn.Flatten()
@@ -19,8 +19,12 @@ class QN(torch.nn.Module):
         self.dropout4 = torch.nn.Dropout(0.5)
 
         self.fc5 = torch.nn.Linear(1384, 225, dtype=torch.float64)
+
+        self.device = device
+        self.to(device)
     
     def forward(self, x):
+        x = x.to(self.device)
         out = self.flatten_1(torch.tanh(self.conv_1(x)))
         appended_board = torch.tanh(self.fc0(self.flatten_0(x)))
         
