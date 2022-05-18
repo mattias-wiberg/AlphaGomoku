@@ -38,7 +38,8 @@ The board is defined as a matrix using:<br>
     -> Use activation functions that also have a negative part?
 - Since the q_table is limited to [-1,1] it might be a very good idea to use tanh on the last layer instead of linear activation.
     -> Use tanh on the last layer.
-- Removing dropout from the deep non-handcrafted network actually made it fail the learning tests. No idea why...
+- Removing dropout from the deep non-handcrafted network actually made it fail the learning tests. No idea why... You don't usually use dropout in reinforcement learning.
+    -> Don't use dropout in reinforcement learning.
 - For the 10 hidden layer network tanh didn't work for the hidden layers, but ReLU did. Probably because of vanishing/exploding gradients or because ReLU allows the network to trim itself down.
     -> For very deep networks try using ReLU if it doesn't work.
 
