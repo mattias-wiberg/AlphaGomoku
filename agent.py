@@ -118,14 +118,11 @@ class TDQNAgent:
             self.moves_tots.append(self.gameboard.n_moves)
             self.black_win_frac.append(self.wins[-100:].count(-1) / 100)
 
-            """
             terminal_batch = random.sample(self.terminal_buffer, k=min(self.batch_size, len(self.terminal_buffer)))
             self.batch_and_reinforce(terminal_batch)
             self.batch_and_reinforce(self.current_episode_buffer)
-            """
-            if len(self.memory) >= self.terminal_replay_buffer_size:
-                memory_batch = random.sample(self.memory, k=self.batch_size*25)
-                self.batch_and_reinforce(memory_batch)
+            memory_batch = random.sample(self.memory, k=min(self.batch_size, len(self.memory)))
+            self.batch_and_reinforce(memory_batch)
             if len(self.terminal_buffer) >= self.terminal_replay_buffer_size + 2:
                 self.terminal_buffer.pop(0)
             if len(self.memory) >= self.terminal_replay_buffer_size + 2:
