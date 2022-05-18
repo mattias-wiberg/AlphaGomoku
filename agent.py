@@ -11,7 +11,7 @@ Transition = namedtuple("Transition",
 
 class TDQNAgent:
     def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,
-                batch_size=32,sync_target_episode_count=10,episode_count=10000, device="cpu"):
+                batch_size=32,sync_target_episode_count=10,episode_count=10000, device="cpu", re_exploration=100000):
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
@@ -34,6 +34,7 @@ class TDQNAgent:
         self.wins = []
         self.black_win_frac = []
         self.memory = []
+        self.re_exploration = re_exploration
 
     def load_strategy(self,strategy_file):
         if self.device == torch.device("cpu"):
@@ -79,7 +80,7 @@ class TDQNAgent:
         return np.unravel_index(np.ma.argmax(ma), (15,15))
 
     def select_action(self):
-        if self.epsilon_scale != 0 and np.random.rand() < max(self.epsilon, 1-self.episode/self.epsilon_scale): # epsilon-greedy
+        if self.epsilon_scale != 0 and np.random.rand() < max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale): # epsilon-greedy
             self.action = self.get_random_action()
         else: 
             self.action = self.get_max_action()
@@ -129,7 +130,7 @@ class TDQNAgent:
             self.current_episode_buffer = []
             
             if self.episode%100==0:
-                print(f'[{self.episode}/{self.episode_count}] mean moves: {np.mean(self.moves_tots[-100:])}, black win fraction: {round(self.black_win_frac[-1], 2)}')
+                print(f'[{self.episode}/{self.episode_count}] mean moves: {np.mean(self.moves_tots[-100:])}, black win fraction: {round(self.black_win_frac[-1], 2)}, epsilon: {max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale)}')
             
             if self.episode % 1000 == 0:
                 pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
