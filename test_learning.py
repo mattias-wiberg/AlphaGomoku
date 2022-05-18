@@ -104,6 +104,7 @@ for idx, test in enumerate(test_moves):
             continue    # can only test against winning moves since that is what the model learns
 
         with torch.no_grad():
+            agent.qn.eval()
             q_table = agent.qn(torch.reshape(torch.tensor(agent.gameboard.board*agent.gameboard.piece, dtype=torch.float64), (1,1,15,15)))
         expected_reward = round(q_table[0, move[0], move[1]].item())
         assert expected_reward == correct_expected_reward
@@ -117,6 +118,7 @@ for idx, test in enumerate(test_moves):
             losing_move = test[move_idx-1]
             gameboard.board[losing_move[0], losing_move[1]] = 0
             with torch.no_grad():
+                agent.qn.eval()
                 q_table = agent.qn(torch.reshape(torch.tensor(agent.gameboard.board*agent.gameboard.piece, dtype=torch.float64), (1,1,15,15)))
             expected_reward = round(q_table[0, losing_move[0], losing_move[1]].item())
             assert expected_reward == -1

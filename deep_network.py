@@ -3,22 +3,22 @@ import torch
 class QN(torch.nn.Module):
     def __init__(self, device):
         super(QN, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
+        self.conv_1 = torch.nn.Conv2d(in_channels=1, out_channels=5, kernel_size=(5,5), stride=(1,1), dtype=torch.float64)
         self.flatten_1 = torch.nn.Flatten()
 
         self.fc0 = torch.nn.Linear(225, 225, dtype=torch.float64)
         self.flatten_0 = torch.nn.Flatten()
 
-        self.fc1 = torch.nn.Linear(346, 1384, dtype=torch.float64)
+        self.fc1 = torch.nn.Linear(830, 1660, dtype=torch.float64)
         self.dropout1 = torch.nn.Dropout(0.5)
-        self.fc2 = torch.nn.Linear(1384, 1384, dtype=torch.float64)
+        self.fc2 = torch.nn.Linear(1660, 1660, dtype=torch.float64)
         self.dropout2 = torch.nn.Dropout(0.5)
-        self.fc3 = torch.nn.Linear(1384, 1384, dtype=torch.float64)
+        self.fc3 = torch.nn.Linear(1660, 1660, dtype=torch.float64)
         self.dropout3 = torch.nn.Dropout(0.5)
-        self.fc4 = torch.nn.Linear(1384, 1384, dtype=torch.float64)
+        self.fc4 = torch.nn.Linear(1660, 1660, dtype=torch.float64)
         self.dropout4 = torch.nn.Dropout(0.5)
 
-        self.fc5 = torch.nn.Linear(1384, 225, dtype=torch.float64)
+        self.fc5 = torch.nn.Linear(1660, 225, dtype=torch.float64)
 
         self.device = device
         self.to(device)
