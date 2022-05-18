@@ -79,12 +79,12 @@ test_moves = [
 
 expected_outcomes = [-1, 1, 0, -1, 0, -1, 0, 1, 1, -1, 1]
 
-n_episodes = 50
+n_episodes = 130
 for idx, test in enumerate(test_moves):
     if expected_outcomes[idx] == 0:
         continue    # can't test against draw outcomes since the model only learns maximum rewards
     gameboard = GameBoard(N_row, N_col)
-    agent = TDQNAgent(gameboard=gameboard)  # new agent per sequence
+    agent = TDQNAgent(gameboard=gameboard, terminal_replay_buffer_size=1000)  # new agent per sequence
 
     for episodeIdx in range(n_episodes):
         print(f"[TRAINING] Sequence {idx+1}/{len(test_moves)}, Episode {episodeIdx+1}/{n_episodes}")

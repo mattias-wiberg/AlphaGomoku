@@ -10,8 +10,8 @@ Transition = namedtuple("Transition",
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
 
 class TDQNAgent:
-    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=5000,terminal_replay_buffer_size=10000,
-                batch_size=32,sync_target_episode_count=10,episode_count=10000, device="cpu", re_exploration=100000):
+    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=4000,terminal_replay_buffer_size=10000,
+                batch_size=32,sync_target_episode_count=10,episode_count=288000, device="cpu", re_exploration=40000):
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
@@ -121,8 +121,9 @@ class TDQNAgent:
             self.batch_and_reinforce(terminal_batch)
             self.batch_and_reinforce(self.current_episode_buffer)
             """
-            memory_batch = random.sample(self.memory, k=min(self.batch_size*50, len(self.memory)))
-            self.batch_and_reinforce(memory_batch)
+            if len(self.memory) >= self.terminal_replay_buffer_size:
+                memory_batch = random.sample(self.memory, k=self.batch_size*25)
+                self.batch_and_reinforce(memory_batch)
             if len(self.terminal_buffer) >= self.terminal_replay_buffer_size + 2:
                 self.terminal_buffer.pop(0)
             if len(self.memory) >= self.terminal_replay_buffer_size + 2:
