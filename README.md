@@ -38,6 +38,7 @@ The board is defined as a matrix using:<br>
     -> Use activation functions that also have a negative part?
 - Since the q_table is limited to [-1,1] it might be a very good idea to use tanh on the last layer instead of linear activation.
     -> Use tanh on the last layer.
+- Removing dropout from the deep networks actually made them fail the learning tests. No idea why...
 
 ## To Try
 - two different agents or NN architectures?/Use two networks, play against older versions to see if it gets better?
