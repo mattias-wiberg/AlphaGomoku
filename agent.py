@@ -3,14 +3,15 @@ import pickle
 import numpy as np
 import random
 from collections import namedtuple
+import os
 import sys
-from deep_network import QN
+from networks.shallow_network import QN
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
 
 class TDQNAgent:
-    def __init__(self,gameboard,alpha=0.001,epsilon=0.01,epsilon_scale=4000,terminal_replay_buffer_size=10000,
+    def __init__(self,gameboard,save_path="networks/trained/"+"network/",alpha=0.001,epsilon=0.01,epsilon_scale=4000,terminal_replay_buffer_size=10000,
                 batch_size=32,sync_target_episode_count=10,episode_count=288000, device="cpu", re_exploration=40000):
         self.alpha=alpha
         self.epsilon=epsilon
@@ -21,6 +22,7 @@ class TDQNAgent:
         self.episode=0
         self.episode_count=episode_count
         self.gameboard = gameboard
+        self.save_path = save_path
         self.device = torch.device(device) 
         self.qn = QN(self.device)
         self.qnhat = QN(self.device)
@@ -139,11 +141,13 @@ class TDQNAgent:
                 print(f'[{self.episode}/{self.episode_count}] mean moves: {np.mean(self.moves_tots[-100:])}, black win fraction: {round(self.black_win_frac[-1], 2)}, epsilon: {max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale)}')
             
             if self.episode % 1000 == 0:
-                pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
-                pickle.dump(self.wins, open('wins.p', 'wb'))
-                pickle.dump(self.black_win_frac, open('black_win_frac.p', 'wb'))
-                pickle.dump(self.epsilons, open('epsilons.p', 'wb'))
-                torch.save(self.qn.state_dict(), 'qn.pth')
+                if not os.path.exists(self.save_path):
+                    os.makedirs(self.save_path)
+                pickle.dump(self.moves_tots, open(self.save_path +'moves_tots.p', 'wb'))
+                pickle.dump(self.wins, open(self.save_path +'wins.p', 'wb'))
+                pickle.dump(self.black_win_frac, open(self.save_path +'black_win_frac.p', 'wb'))
+                pickle.dump(self.epsilons, open(self.save_path +'epsilons.p', 'wb'))
+                torch.save(self.qn.state_dict(), self.save_path +'qn.pth')
             
             if self.episode>=self.episode_count:
                 sys.exit()
