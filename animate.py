@@ -2,7 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.animation as animation
-import torch
 import numpy as np
 
 from gameboard import GameBoard
@@ -34,13 +33,6 @@ def set_square_grid(ax, size):
     ax.set_yticklabels(labels)
     ax.grid(which='both')
 
-
-def onclick(event):
-    ix, iy = event.xdata, event.ydata
-    ix = round(ix)
-    iy = round(iy)
-    print('x = %f, y = %f, %d'%(ix, iy))
-
 N_row = 15
 N_col = 15
 object = pd.read_pickle(r'deep_network/moves_tots.p')
@@ -57,13 +49,13 @@ set_square_grid(ax, N_row)
 center_labels(ax)
 
 im = plt.imshow(gameboard.board, cmap='Greys_r')
+def init():
+    im.set_data(gameboard.board)
+    plt.colorbar()
 
-cid = fig.canvas.mpl_connect('button_press_event', onclick)
-
-while True:
+def animate(i):
     gameboard.board = np.random.randint(-1,2,(N_row,N_col))
     im.set_data(gameboard.board)
-    plt.waitforbuttonpress()
+    return im
 
-fig.canvas.mpl_disconnect(cid)
-    
+#anim = animation.FuncAnimation(fig, animate, init_func=init, frames=1, interval=1)
