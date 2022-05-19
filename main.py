@@ -2,17 +2,24 @@ from gameboard import GameBoard
 from agent import TDQNAgent
 from matplotlib import pyplot as plt
 
-visualize = True
-strategy_file = 'qn.pth'
+visualize = False
+load_strategy = True
+save_path = 'networks/trained/'
+network = 'test_network/'
+save_path += network
 
-human = True
+human = False
 human_start_piece = 1
 
 gameboard = GameBoard(15, 15, human, visualize)
-agent = TDQNAgent(gameboard, device="cpu", epsilon_scale=0)
+agent = TDQNAgent(gameboard, save_path=save_path, device="cpu")
 
-if strategy_file:
-    agent.load_strategy(strategy_file, "moves_tots.p", "wins.p", "black_win_frac.p")
+if load_strategy:
+    agent.load_strategy(save_path+"qn.pth", 
+                        save_path+"moves_tots.p",
+                        save_path+"wins.p",
+                        save_path+"black_win_frac.p",
+                        save_path+"epsilons.p")
     if human:
         if human_start_piece == 1:
             while True:

@@ -1,9 +1,11 @@
-from gameboard import GameBoard
+
 import numpy as np
 import matplotlib.pyplot as plt
-from agent import TDQNAgent
 import time
 from tqdm import tqdm
+
+from gameboard import GameBoard
+from agent import TDQNAgent
 
 def visualize_moves(N_row, N_col, moves):
     board = np.zeros((N_row, N_col))

@@ -1,64 +1,53 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib
 import matplotlib.animation as animation
-import torch
 import numpy as np
+from tqdm import tqdm
 
-from gameboard import GameBoard
+def moving_average(x, w):
+    avg = []
+    for i in tqdm(range(len(x))):
+        avg.append(np.mean(x[max(0, int(i-w/2)):min(len(x)-1,int(i+w/2))]))
+    return avg
 
-# ! Call after setting labels using ax.set_xticklabels(labels)
-def center_labels(ax):
-    # Create offset transform by 10 points in x direction
-    dx = 10/72.; dy = 0/72. 
-    x_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
-    # Create offset transform by 10 points in y direction
-    dx = 0/72.; dy = -10/72. 
-    y_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
-    # apply offset transform to all x ticklabels.
-    for label in ax.xaxis.get_majorticklabels():
-        label.set_transform(label.get_transform() + x_offset)
+save_path = 'networks/trained/'
+network = 'test_network'
+save_path += network
 
-    # apply offset transform to all x ticklabels.
-    for label in ax.yaxis.get_majorticklabels():
-        label.set_transform(label.get_transform() + y_offset)
+print('Loading data...')
+moves_tots = pd.read_pickle(save_path+'/moves_tots.p')
+wins = pd.read_pickle(save_path+'/wins.p')
+#black_win_frac = pd.read_pickle(save_path+'/black_win_frac.p')
+epsilons = pd.read_pickle(save_path+'/epsilons.p')
+print('Done!')
 
-# Make a square lattice grid at whole integers
-def set_square_grid(ax, size):
-    major_ticks = np.arange(-0.5, size-0.5, 1)
-    labels = np.arange(0, size, 1)
-    ax.set_xticks(major_ticks)
-    ax.set_xticklabels(labels)
+print('Calculating black win fractions...')
+black_win_frac = moving_average(np.array(wins)==-1, 100)
+print('Done!')
 
-    ax.set_yticks(major_ticks)
-    ax.set_yticklabels(labels)
-    ax.grid(which='both')
+print('Running moving average on moves_tots')
+moves_tots_avg = moving_average(moves_tots, 1000)
+print('Running moving average on wins')
+wins_avg = moving_average(wins, 1000)
 
-def onclick(event):
-    ix, iy = event.xdata, event.ydata
-    ix = round(ix)
-    iy = round(iy)
-    gameboard.move(iy, ix)
-    print('x = %f, y = %f, %d'%(ix, iy, gameboard.board[iy, ix]))
+# Plotting
+plt.plot(moves_tots, label='Moves')
+plt.plot(moves_tots_avg, label='Moves average')
+plt.plot(wins_avg, label='Wins')
 
-N_row = 15
-N_col = 15
-gameboard = GameBoard(N_row, N_col)
+# Add high epsilon intervals
+print('Adding high epsilon intervals...')
+start = 0
+end = 0
+for i in tqdm(range(len(epsilons)-1)):
+    if epsilons[i] <= 0.01 and epsilons[i+1] > 0.01: # From <= 0.01 to > 0.01
+        start = i
+    if epsilons[i] > 0.01 and epsilons[i+1] <= 0.01: # From > 0.01 to <= 0.01
+        end = i
+        plt.axvspan(start, end, color='red', alpha=0.5)
+        start = 0
+        end = 0
+print('Done!')
 
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-
-set_square_grid(ax, N_row)
-center_labels(ax)
-
-im = plt.imshow(gameboard.board, cmap='Greys_r')
-plt.colorbar()
-
-cid = fig.canvas.mpl_connect('button_press_event', onclick)
-
-while not gameboard.gameover:
-    im.set_data(gameboard.board)
-    plt.waitforbuttonpress()
-print('Game over! Player %d wins!'%gameboard.piece)
-fig.canvas.mpl_disconnect(cid)
-    
+print('Showing...')
+plt.show()
