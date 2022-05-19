@@ -76,10 +76,16 @@ class GameBoard:
         
         self.board[row,col] = self.piece
         self.n_moves += 1
+
+
         if self.n_moves >= 9:   # need at least 9 moves to win
             reward = self.get_reward(row, col)
         else:
             reward = 0
+
+        if reward == 0 and self.n_moves == self.N_row*self.N_col: # Tie!
+            self.gameover = True
+            return reward
             
         if reward != 0:
             self.gameover = True

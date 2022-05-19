@@ -124,6 +124,34 @@ def test_get_seq_reward():
         assert gameboard.get_seq_reward(seq) == expected_seq_outcomes[idx]
     print("Passed gameboard.get_seq_reward()")
 
+def test_full_board():
+    gameboard = GameBoard(N_row, N_col)
+    agent = TDQNAgent(gameboard=gameboard)
+    gameboard.board = np.array([
+        [0, 1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1,  1,  1, -1],
+        [ 1, -1,  1, -1,  1, 1, -1,  1, -1, -1, -1, -1,  1, -1,  1],
+        [-1, 1,-1,-1, 1, -1,-1, 1, -1,  1,  1,  1, -1,  1, -1],
+        [ 1, -1,  1, -1,  1,  1, -1,  1, -1, -1,  1,  1,  1, -1,  1],
+        [ 1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1],
+        [-1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1,],
+        [-1,  1, -1, -1, -1,  1, -1,  1, -1,  1, -1,  1, -1, -1, -1],
+        [-1, -1,  1, -1, -1,  1,  1,  1, -1, -1,  1,  1, -1,  1, -1],
+        [ 1, -1,  1, -1,  1,  1,  1, -1,  1, -1,  1, -1,  1, -1,  1],
+        [-1,  1, -1,  1, -1, -1,  1,  1,  1, -1,  1, -1,  1, -1,  1],
+        [-1,  1, -1, -1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1],
+        [ 1,  1,  1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1],
+        [ 1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1],
+        [-1,  1, -1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1],
+        [ 1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1,  1, -1]
+    ])
+    gameboard.n_moves = N_row * N_col -1
+    gameboard.piece= -1
+    index = agent.get_random_action()
+    gameboard.move(index[0], index[1])
+    assert gameboard.gameover == True
+    print("Passed test_full_board()")
+
+
 # Test get random action
 def test_get_random_action():
     gameboard = GameBoard(N_row, N_col)
@@ -189,6 +217,7 @@ def test_get_max_action_slower():
 
 test_plot_board()
 test_fuctions = [
+    test_full_board,
     test_get_max_action,
     test_get_max_action_slow,
     test_get_max_action_slower,
