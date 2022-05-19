@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from agent import TDQNAgent
 import time
+from tqdm import tqdm
 
 def visualize_moves(N_row, N_col, moves):
     board = np.zeros((N_row, N_col))
@@ -151,6 +152,26 @@ def test_full_board():
     assert gameboard.gameover == True
     print("Passed test_full_board()")
 
+# Random moves avg moves
+def test_random_moves():
+    N_row = 15
+    N_col = 15
+    N_games = 100
+    winners = []
+    N_moves_per_game = []
+    for i in tqdm(range(N_games)):
+        gameboard = GameBoard(N_row, N_col)
+        j = 0
+        # Play until gameover
+        while not gameboard.gameover:
+            mask = gameboard.board == 0
+            index = np.unravel_index(np.argmax(np.random.random(mask.shape)*mask), mask.shape)
+            gameboard.move(index[0], index[1])
+            j += 1
+        winners.append(gameboard.piece)
+        N_moves_per_game.append(j)
+    print("Random moves avg moves: ", np.mean(N_moves_per_game))
+    print("Random wins mean: ", np.mean(winners))
 
 # Test get random action
 def test_get_random_action():
@@ -215,9 +236,10 @@ def test_get_max_action_slower():
     print("Passed agent.test_get_max_action_slower()")
     print("Total time: ", time_total)
 
-test_plot_board()
+#test_plot_board()
 test_fuctions = [
     test_full_board,
+    test_random_moves,
     test_get_max_action,
     test_get_max_action_slow,
     test_get_max_action_slower,
