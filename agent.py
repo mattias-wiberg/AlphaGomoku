@@ -4,7 +4,7 @@ import numpy as np
 import random
 from collections import namedtuple
 import sys
-from shallow_network import QN
+from deep_network import QN
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
@@ -32,10 +32,11 @@ class TDQNAgent:
         self.moves_tots = []
         self.wins = []
         self.black_win_frac = []
+        self.epsilons = []
         #self.memory = []
         self.re_exploration = re_exploration
 
-    def load_strategy(self, strategy_file, moves_tots_file, wins_file, black_win_frac_file):
+    def load_strategy(self, strategy_file, moves_tots_file, wins_file, black_win_frac_file, epsilons_file):
         if self.device == torch.device("cpu"):
             self.qn.load_state_dict(torch.load(strategy_file, map_location=torch.device("cpu")))
             self.qnhat.load_state_dict(self.qn.state_dict())
@@ -44,6 +45,7 @@ class TDQNAgent:
             self.qnhat.load_state_dict(self.qn.state_dict())
         self.moves_tots = pickle.load(open(moves_tots_file,"rb"))
         self.wins = pickle.load(open(wins_file, "rb"))
+        self.epsilons = pickle.load(open(epsilons_file, "rb"))
         self.black_win_frac = pickle.load(open(black_win_frac_file, "rb"))
 
     # Returns the row,col of a valid random action
@@ -114,9 +116,13 @@ class TDQNAgent:
     def turn(self, forced_move=None):
         # forced_move used in select_action for testing purposes
         if self.gameboard.gameover:
-            self.episode+=1
+            if self.epsilon_scale != 0:
+                self.epsilons.append(max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale))
+            else:
+                self.epsilons.append(self.epsilon)
             self.moves_tots.append(self.gameboard.n_moves)
             self.black_win_frac.append(self.wins[-100:].count(-1) / 100)
+            self.episode+=1
 
             terminal_batch = random.sample(self.terminal_buffer, k=min(self.batch_size, len(self.terminal_buffer)))
             self.batch_and_reinforce(terminal_batch)
@@ -136,6 +142,7 @@ class TDQNAgent:
                 pickle.dump(self.moves_tots, open('moves_tots.p', 'wb'))
                 pickle.dump(self.wins, open('wins.p', 'wb'))
                 pickle.dump(self.black_win_frac, open('black_win_frac.p', 'wb'))
+                pickle.dump(self.epsilons, open('epsilons.p', 'wb'))
                 torch.save(self.qn.state_dict(), 'qn.pth')
             
             if self.episode>=self.episode_count:

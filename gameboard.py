@@ -1,8 +1,9 @@
 import numpy as np
-import imagesc as sc
+import matplotlib.pyplot as plt
+import matplotlib
 
 class GameBoard:
-    def __init__(self,N_row,N_col):
+    def __init__(self,N_row,N_col, interactive=False, draw=False):
         self.N_row=N_row
         self.N_col=N_col
         # Create table for game board
@@ -13,6 +14,22 @@ class GameBoard:
         self.gameover = False
         self.piece = -1
         self.n_moves = 0
+
+        # Plotting
+        self.fig = plt.figure()
+        ax = self.fig.add_subplot(1, 1, 1)
+
+        self.set_square_grid(ax, N_row)
+        self.center_labels(ax, self.fig)
+        if draw:
+            self.im = plt.imshow(self.board, cmap='Greys_r')
+            plt.colorbar()
+        else:
+            self.im = None
+
+        # Playing
+        if interactive:
+            self.fig.canvas.mpl_connect('button_press_event', self.onclick)
 
     def restart(self):
         self.board = np.zeros((self.N_row, self.N_col), dtype=np.int8)
@@ -60,15 +77,42 @@ class GameBoard:
         
         return 0
 
+    # ! Call after setting labels using ax.set_xticklabels(labels)
+    def center_labels(self, ax, fig):
+        # Create offset transform by 10 points in x direction
+        dx = 10/72.; dy = 0/72. 
+        x_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
+        # Create offset transform by 10 points in y direction
+        dx = 0/72.; dy = -10/72. 
+        y_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
+        # apply offset transform to all x ticklabels.
+        for label in ax.xaxis.get_majorticklabels():
+            label.set_transform(label.get_transform() + x_offset)
+
+        # apply offset transform to all x ticklabels.
+        for label in ax.yaxis.get_majorticklabels():
+            label.set_transform(label.get_transform() + y_offset)
+
+    # Make a square lattice grid at whole integers
+    def set_square_grid(self, ax, size):
+        major_ticks = np.arange(-0.5, size-0.5, 1)
+        labels = np.arange(0, size, 1)
+        ax.set_xticks(major_ticks)
+        ax.set_xticklabels(labels)
+
+        ax.set_yticks(major_ticks)
+        ax.set_yticklabels(labels)
+        ax.grid(which='both')
+
+    def onclick(self, event):
+        ix, iy = event.xdata, event.ydata
+        ix = round(ix)
+        iy = round(iy)
+        self.move(iy, ix)
+        print('x = %f, y = %f, %d'%(ix, iy, self.board[iy, ix]))
+
     def plot(self):
-        sc.plot(
-            self.board,
-            grid=True,
-            linewidth=1,
-            title="Turn: {0}".format(self.piece),
-            cmap="Greys",
-            figsize=(5, 5),
-        )
+        self.im.set_data(self.board)
 
     def move(self, row, col):
         # TODO: returns 0 on a draw, is that OK? think it should be OK!
