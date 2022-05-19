@@ -116,7 +116,10 @@ class TDQNAgent:
     def turn(self, forced_move=None):
         # forced_move used in select_action for testing purposes
         if self.gameboard.gameover:
-            self.epsilons.append(max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale))
+            if self.epsilon_scale != 0:
+                self.epsilons.append(max(self.epsilon, 1-(self.episode%self.re_exploration)/self.epsilon_scale))
+            else:
+                self.epsilons.append(self.epsilon)
             self.moves_tots.append(self.gameboard.n_moves)
             self.black_win_frac.append(self.wins[-100:].count(-1) / 100)
             self.episode+=1
