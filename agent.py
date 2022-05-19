@@ -171,11 +171,11 @@ class TDQNAgent:
             #self.memory.append(transition)
 
             if self.gameboard.gameover:
-                # the second to last transition was a losing move
+                # the second to last transition was a terminal move (loss/tie)
                 self.current_episode_buffer[-2] = Transition(
                             old_state=self.current_episode_buffer[-2].old_state,
                             action_mask=self.current_episode_buffer[-2].action_mask,
-                            reward=-1,    # CHANGED
+                            reward=-1*abs(reward),    # CHANGED
                             new_state=self.current_episode_buffer[-2].new_state,
                             terminal_mask=self.gameboard.gameover,  # CHANGED
                             illegal_action_new_state_mask=self.current_episode_buffer[-2].illegal_action_new_state_mask
