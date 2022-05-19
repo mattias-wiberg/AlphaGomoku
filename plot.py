@@ -1,3 +1,4 @@
+from turtle import color
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -11,7 +12,7 @@ def moving_average(x, w):
     return avg
 
 save_path = 'networks/trained/'
-network = 'test_network'
+network = 'deep_network_conv'
 save_path += network
 
 print('Loading data...')
@@ -31,9 +32,12 @@ print('Running moving average on wins')
 wins_avg = moving_average(wins, 1000)
 
 # Plotting
-plt.plot(moves_tots, label='Moves')
-plt.plot(moves_tots_avg, label='Moves average')
-plt.plot(wins_avg, label='Wins')
+fig, ax1 = plt.subplots()
+ax1.plot(moves_tots, label='Moves')
+ax1.plot(moves_tots_avg, label='Moves average')
+ax2 = ax1.twinx()
+ax2.plot(wins_avg, label='Wins', color='green')
+fig.tight_layout()
 
 # Add high epsilon intervals
 print('Adding high epsilon intervals...')
