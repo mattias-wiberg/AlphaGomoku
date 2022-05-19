@@ -84,6 +84,7 @@ class GameBoard:
             reward = 0
 
         if reward == 0 and self.n_moves == self.N_row*self.N_col: # Tie!
+            print("Tie!")
             self.gameover = True
             return reward
             
