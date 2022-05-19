@@ -38,6 +38,7 @@ ax1.plot(moves_tots_avg, label='Moves average')
 ax2 = ax1.twinx()
 ax2.plot(wins_avg, label='Wins', color='green')
 fig.tight_layout()
+fig.legend()
 
 # Add high epsilon intervals
 print('Adding high epsilon intervals...')
