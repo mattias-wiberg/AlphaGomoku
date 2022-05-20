@@ -72,11 +72,14 @@ class TDQNAgent:
     def get_max_action(self):
         self.qn.eval()
         out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
+        return np.unravel_index(np.argmax(out), out.shape)
+        """
         sorted_idx = np.flip(np.argsort(out, axis=None))
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
             if self.gameboard.board[idx] == 0:
                 return idx
+        """
     
     def get_max_action_slower(self):
         self.qn.eval()
@@ -164,7 +167,13 @@ class TDQNAgent:
 
             old_state = torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,15,15))
             old_piece = self.gameboard.piece
-            reward = self.gameboard.move(self.action[0], self.action[1])
+            legal_move = True
+            if self.gameboard.board[self.action] == 0:
+                reward = self.gameboard.move(self.action[0], self.action[1])
+            else:
+                reward = -1
+                self.gameboard.gameover = True
+                legal_move = False
             if self.gameboard.gameover:
                 self.wins.append(reward)
 
@@ -183,14 +192,15 @@ class TDQNAgent:
 
             if self.gameboard.gameover:
                 # the second to last transition was a terminal move (loss/tie)
-                self.current_episode_buffer[-2] = Transition(
-                            old_state=self.current_episode_buffer[-2].old_state,
-                            action_mask=self.current_episode_buffer[-2].action_mask,
-                            reward=-1*abs(reward),    # CHANGED
-                            new_state=self.current_episode_buffer[-2].new_state,
-                            terminal_mask=self.gameboard.gameover,  # CHANGED
-                            illegal_action_new_state_mask=self.current_episode_buffer[-2].illegal_action_new_state_mask
-                            )
-                #self.memory[-2] = self.current_episode_buffer[-2]
-                self.terminal_buffer.append(self.current_episode_buffer[-2])
+                if legal_move:
+                    self.current_episode_buffer[-2] = Transition(
+                                old_state=self.current_episode_buffer[-2].old_state,
+                                action_mask=self.current_episode_buffer[-2].action_mask,
+                                reward=-1*abs(reward),    # CHANGED
+                                new_state=self.current_episode_buffer[-2].new_state,
+                                terminal_mask=self.gameboard.gameover,  # CHANGED
+                                illegal_action_new_state_mask=self.current_episode_buffer[-2].illegal_action_new_state_mask
+                                )
+                    #self.memory[-2] = self.current_episode_buffer[-2]
+                    self.terminal_buffer.append(self.current_episode_buffer[-2])
                 self.terminal_buffer.append(self.current_episode_buffer[-1])
