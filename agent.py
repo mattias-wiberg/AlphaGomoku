@@ -171,7 +171,6 @@ class TDQNAgent:
             if self.gameboard.board[self.action] == 0:
                 reward = self.gameboard.move(self.action[0], self.action[1])
             else:
-                reward = -1
                 self.gameboard.gameover = True
                 legal_move = False
             if self.gameboard.gameover:
@@ -182,7 +181,7 @@ class TDQNAgent:
             transition = Transition(
                             old_state=old_state,
                             action_mask=action_mask,
-                            reward=reward*old_piece,
+                            reward=reward*old_piece if legal_move else -1,
                             new_state=torch.reshape(torch.tensor(self.gameboard.board*old_piece, dtype=torch.float64), (1,15,15)),
                             terminal_mask=self.gameboard.gameover,
                             illegal_action_new_state_mask=torch.tensor(self.gameboard.board != 0)
