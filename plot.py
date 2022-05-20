@@ -43,6 +43,7 @@ ax2.plot(wins_avg, label='Wins avg', color='green')
 ax2.axhline(y=0, color='red', linestyle='--')
 ax2.set_ylabel('Wins')
 fig.tight_layout()
+fig.legend()
 
 # Add high epsilon intervals
 print('Adding high epsilon intervals...')

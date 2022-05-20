@@ -154,6 +154,32 @@ def test_full_board():
     assert gameboard.gameover == True
     print("Passed test_full_board()")
 
+def test_full_board2():
+    gameboard = GameBoard(N_row, N_col)
+    gameboard.board = np.array([
+        [ 0, -1,  1, -1,  1,  0, -1,  1, -1,  1, -1,  1, -1,  1, -1],
+        [ 0,  1, -1,  1, -1,  1, -1,  1, -1,  0,  1,  0, -1,  1,  1],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1,  0,  1, -1, -1],
+        [ 0,  0, -1,  1, -1,  1,  0, -1,  1, -1,  0,  1,  0, -1,  0],
+        [ 1,  0,  1, -1,  1, -1, -1,  1, -1,  1, -1,  0,  0,  0,  1],
+        [-1,  1, -1,  1, -1,  1, -1,  1, -1,  1,  0,  0, -1,  1,  0],
+        [ 0, -1,  1, -1,  1,  1, -1, -1,  1, -1,  1,  0, -1,  1, -1],
+        [ 1, -1,  1, -1,  1, -1,  1,  0,  1, -1,  1, -1,  0,  0,  0],
+        [ 0,  1, -1,  1,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+        [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, -1, -1]
+    ])
+    gameboard.n_moves = 91
+    gameboard.piece= 1
+    reward = gameboard.move(2, 9)
+    assert gameboard.gameover == True
+    assert reward == 1
+    print("Passed test_full_board2()")
+
 # Random moves avg moves
 def test_random_moves():
     N_row = 15
@@ -161,8 +187,9 @@ def test_random_moves():
     N_games = 100
     winners = []
     N_moves_per_game = []
+    gameboard = GameBoard(N_row, N_col)
     for i in tqdm(range(N_games)):
-        gameboard = GameBoard(N_row, N_col)
+        gameboard.restart()
         j = 0
         # Play until gameover
         while not gameboard.gameover:
@@ -241,6 +268,7 @@ def test_get_max_action_slower():
 #test_plot_board()
 test_fuctions = [
     test_full_board,
+    test_full_board2,
     test_random_moves,
     test_get_max_action,
     test_get_max_action_slow,
