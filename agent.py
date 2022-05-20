@@ -5,7 +5,7 @@ import random
 from collections import namedtuple
 import os
 import sys
-from networks.old_deep import QN
+from networks.deep_network_conv import QN
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
@@ -74,6 +74,8 @@ class TDQNAgent:
     def get_max_action(self):
         self.qn.eval()
         out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
+        #self.gameboard.set_out(out) # Set the output of the network to the gameboard
+        self.gameboard.im2.set_data(out*self.gameboard.piece)
         sorted_idx = np.flip(np.argsort(out, axis=None))
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
