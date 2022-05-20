@@ -55,18 +55,21 @@ class GameBoard:
 
     # -1/0/+1: black wins/nothing/white wins
     def get_reward(self, row, col):
-        row_bounds = (max(0,row-4), min(self.N_row,row+5))
-        col_bounds = (max(0,col-4), min(self.N_col,col+5))
+        padded_board = np.pad(self.board, 4)
+        row += 4
+        col += 4
+        row_bounds = (row-4, row+5)
+        col_bounds = (col-4, col+5)
         
-        row_victory = self.get_seq_reward( self.board[row_bounds[0]:row_bounds[1], col] )
+        row_victory = self.get_seq_reward( padded_board[row_bounds[0]:row_bounds[1], col] )
         if row_victory != 0:
             return row_victory
         
-        col_victory = self.get_seq_reward( self.board[row, col_bounds[0]:col_bounds[1]] )
+        col_victory = self.get_seq_reward( padded_board[row, col_bounds[0]:col_bounds[1]] )
         if col_victory != 0:
             return col_victory
 
-        relevant_board = self.board[row_bounds[0]:row_bounds[1], col_bounds[0]:col_bounds[1]]
+        relevant_board = padded_board[row_bounds[0]:row_bounds[1], col_bounds[0]:col_bounds[1]]
         back_diag_victory = self.get_seq_reward( np.diag(relevant_board) )  # \
         if back_diag_victory != 0:
             return back_diag_victory
@@ -115,12 +118,10 @@ class GameBoard:
         self.im.set_data(self.board)
 
     def move(self, row, col):
-        # TODO: returns 0 on a draw, is that OK? think it should be OK!
         assert self.board[row,col] == 0     # double check that it is a legal move
         
         self.board[row,col] = self.piece
         self.n_moves += 1
-
 
         if self.n_moves >= 9:   # need at least 9 moves to win
             reward = self.get_reward(row, col)
