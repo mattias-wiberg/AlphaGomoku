@@ -3,16 +3,19 @@ from agent import TDQNAgent
 from matplotlib import pyplot as plt
 
 visualize = False
-load_strategy = True
+load_strategy = False
 save_path = 'networks/trained/'
-network = 'test_network/'
+network = 'deep_network_conv/'
 save_path += network
 
 human = False
 human_start_piece = 1
 
 gameboard = GameBoard(15, 15, human, visualize)
-agent = TDQNAgent(gameboard, save_path=save_path, device="cpu")
+if visualize:
+    agent = TDQNAgent(gameboard, save_path=save_path, device="cuda", epsilon_scale=0)
+else:
+    agent = TDQNAgent(gameboard, save_path=save_path, device="cuda")
 
 if load_strategy:
     agent.load_strategy(save_path+"qn.pth", 
