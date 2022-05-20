@@ -50,6 +50,7 @@ class TDQNAgent:
         self.wins = pickle.load(open(wins_file, "rb"))
         self.epsilons = pickle.load(open(epsilons_file, "rb"))
         self.black_win_frac = pickle.load(open(black_win_frac_file, "rb"))
+        self.episode = len(self.moves_tots)
 
     # Returns the row,col of a valid random action
     def get_random_action(self):
