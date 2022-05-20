@@ -34,9 +34,14 @@ wins_avg = moving_average(wins, 1000)
 # Plotting
 fig, ax1 = plt.subplots()
 ax1.plot(moves_tots, label='Moves')
-ax1.plot(moves_tots_avg, label='Moves average')
+ax1.plot(moves_tots_avg, label='Average')
+ax1.set_xlabel('Games')
+ax1.set_ylabel('Number of Moves')
+
 ax2 = ax1.twinx()
-ax2.plot(wins_avg, label='Wins', color='green')
+ax2.plot(wins_avg, label='Wins avg', color='green')
+ax2.axhline(y=0, color='red', linestyle='--')
+ax2.set_ylabel('Wins')
 fig.tight_layout()
 
 # Add high epsilon intervals
