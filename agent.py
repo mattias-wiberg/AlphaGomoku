@@ -11,8 +11,9 @@ Transition = namedtuple("Transition",
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
 
 class TDQNAgent:
-    def __init__(self,gameboard,save_path="networks/trained/"+"network/",alpha=0.001,epsilon=0.01,epsilon_scale=4000,terminal_replay_buffer_size=10000,
-                batch_size=32,sync_target_episode_count=10,episode_count=288000, device="cpu", re_exploration=40000):
+    def __init__(self,gameboard,save_path="networks/trained/"+"network/",alpha=0.00001,epsilon=0.01,epsilon_scale=4000,terminal_replay_buffer_size=10000,
+                batch_size=32,sync_target_episode_count=10,episode_count=288000, device="cpu", re_exploration=40000, gamma=0.99):
+        self.gamma = gamma
         self.alpha=alpha
         self.epsilon=epsilon
         self.epsilon_scale=epsilon_scale
@@ -96,7 +97,7 @@ class TDQNAgent:
         self.qnhat.eval()
         predictions = self.qn(old_states_batch)[action_masks_batch]
         with torch.no_grad():
-            expected_future_reward = self.qnhat(new_states_batch)
+            expected_future_reward = self.qnhat(new_states_batch) * self.gamma
             expected_future_reward[illegal_action_new_state_mask_batch] = -np.infty
             targets = torch.max(torch.reshape(expected_future_reward, (old_states_batch.shape[0],15*15)), 1)[0]
             targets[terminal_masks_batch] = 0
@@ -165,7 +166,6 @@ class TDQNAgent:
             old_state = torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,15,15))
             old_piece = self.gameboard.piece
             reward = self.gameboard.move(self.action[0], self.action[1])
-            reward /= (self.gameboard.n_moves*0.111)
             if self.gameboard.gameover:
                 self.wins.append(reward)
 
