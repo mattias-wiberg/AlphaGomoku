@@ -14,7 +14,7 @@ class GameBoard:
         self.gameover = False
         self.piece = -1
         self.n_moves = 0
-        self.im2 = None
+        self.draw = draw
 
         if draw:
             # Plotting
@@ -33,6 +33,7 @@ class GameBoard:
             self.ax1.set_title("Q table")
         else:
             self.im = None
+            self.im2 = None
 
         # Playing
         if interactive:
@@ -149,8 +150,9 @@ class GameBoard:
         else:
             self.piece *= -1 # Alternate between white and black
 
-        if self.piece*-1 == 1: # Invert since we plot the board before the move so it is always behind.
-            self.ax0.set_title('Current Player White')
-        else:
-            self.ax0.set_title('Current Player Black')
+        if self.draw:
+            if self.piece*-1 == 1: # Invert since we plot the board before the move so it is always behind.
+                self.ax0.set_title('Current Player White')
+            else:
+                self.ax0.set_title('Current Player Black')
         return reward
