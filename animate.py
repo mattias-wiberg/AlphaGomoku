@@ -1,61 +1,33 @@
-import pandas as pd
+from cv2 import repeat
 import matplotlib.pyplot as plt
-import matplotlib
 import matplotlib.animation as animation
 import numpy as np
 
+from agent import TDQNAgent
 from gameboard import GameBoard
 
-# ! Call after setting labels using ax.set_xticklabels(labels)
-def center_labels(ax):
-    # Create offset transform by 10 points in x direction
-    dx = 10/72.; dy = 0/72. 
-    x_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
-    # Create offset transform by 10 points in y direction
-    dx = 0/72.; dy = -10/72. 
-    y_offset = matplotlib.transforms.ScaledTranslation(dx, dy, fig.dpi_scale_trans)
-    # apply offset transform to all x ticklabels.
-    for label in ax.xaxis.get_majorticklabels():
-        label.set_transform(label.get_transform() + x_offset)
+gameboard = GameBoard(15, 15, False, True)
+save_path = 'networks/trained/'
+network = 'deep_network_conv/'
+save_path += network
+agent = TDQNAgent(gameboard, save_path=save_path, device="cpu", epsilon_scale=0, episode_count=1000000)
+agent.load_strategy(save_path+"qn.pth", 
+                    save_path+"moves_tots.p",
+                    save_path+"wins.p",
+                    save_path+"black_win_frac.p",
+                    save_path+"epsilons.p")
 
-    # apply offset transform to all x ticklabels.
-    for label in ax.yaxis.get_majorticklabels():
-        label.set_transform(label.get_transform() + y_offset)
-
-# Make a square lattice grid at whole integers
-def set_square_grid(ax, size):
-    major_ticks = np.arange(-0.5, size-0.5, 1)
-    labels = np.arange(0, size, 1)
-    ax.set_xticks(major_ticks)
-    ax.set_xticklabels(labels)
-
-    ax.set_yticks(major_ticks)
-    ax.set_yticklabels(labels)
-    ax.grid(which='both')
-
-N_row = 15
-N_col = 15
-object = pd.read_pickle(r'deep_network/moves_tots.p')
-#plt.plot(object)
-print(len(object))
-#plt.waitforbuttonpress()
-gameboard = GameBoard(N_row, N_col)
-gameboard.board = np.random.randint(-1,2,(N_row,N_col))
-
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-
-set_square_grid(ax, N_row)
-center_labels(ax)
-
-im = plt.imshow(gameboard.board, cmap='Greys_r')
-def init():
-    im.set_data(gameboard.board)
-    plt.colorbar()
+nSeconds = 200
+fps = 1
 
 def animate(i):
-    gameboard.board = np.random.randint(-1,2,(N_row,N_col))
-    im.set_data(gameboard.board)
-    return im
+    gameboard.plot()
+    agent.turn()
+    if gameboard.gameover:
+        print(np.sum(np.abs(gameboard.board)))
+    return [gameboard.im, gameboard.im2]
 
-#anim = animation.FuncAnimation(fig, animate, init_func=init, frames=1, interval=1)
+anim = animation.FuncAnimation(gameboard.fig, animate, frames=nSeconds*fps, interval=1000/fps, repeat=False)
+#plt.show()
+print("Saving animation...")
+anim.save('figures/'+network+'slow_long.gif', fps=fps, writer='pillow')

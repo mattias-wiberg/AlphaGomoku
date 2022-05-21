@@ -5,7 +5,8 @@ import random
 from collections import namedtuple
 import os
 import sys
-from networks.old_deep import QN
+from networks.deep_network_handcrafted import QN
+from networks.deep_network_handcrafted import QN as QN2
 
 Transition = namedtuple("Transition", 
                         ("old_state", "action_mask", "reward", "new_state", "terminal_mask", "illegal_action_new_state_mask"))
@@ -38,8 +39,10 @@ class TDQNAgent:
         self.epsilons = []
         #self.memory = []
         self.re_exploration = re_exploration
+        self.qn2 = None
 
-    def load_strategy(self, strategy_file, moves_tots_file, wins_file, black_win_frac_file, epsilons_file):
+    def load_strategy(self, strategy_file, moves_tots_file, wins_file, black_win_frac_file, epsilons_file, second_strategy_file=None):
+        # second_strategy_file network will play as white (1), reverse the order to reverse the players
         if self.device == torch.device("cpu"):
             self.qn.load_state_dict(torch.load(strategy_file, map_location=torch.device("cpu")))
             self.qnhat.load_state_dict(self.qn.state_dict())
@@ -50,6 +53,10 @@ class TDQNAgent:
         self.wins = pickle.load(open(wins_file, "rb"))
         self.epsilons = pickle.load(open(epsilons_file, "rb"))
         self.black_win_frac = pickle.load(open(black_win_frac_file, "rb"))
+        self.episode = len(self.moves_tots)
+        if second_strategy_file is not None:
+            self.qn2 = QN2(self.device)
+            self.qn2.load_state_dict(torch.load(second_strategy_file))
 
     # Returns the row,col of a valid random action
     def get_random_action(self):
@@ -71,8 +78,15 @@ class TDQNAgent:
 
     # Returns the row,col of a valid action with the max future reward
     def get_max_action(self):
-        self.qn.eval()
-        out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
+        if self.qn2 is None or self.gameboard.piece == -1:
+            net = self.qn
+        else:
+            net = self.qn2
+        net.eval()
+        out = net(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
+        #self.gameboard.set_out(out) # Set the output of the network to the gameboard
+        if self.gameboard.im2 is not None:
+            self.gameboard.im2.set_data(out)
         sorted_idx = np.flip(np.argsort(out, axis=None))
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
