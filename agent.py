@@ -75,7 +75,7 @@ class TDQNAgent:
         self.qn.eval()
         out = self.qn(torch.reshape(torch.tensor(self.gameboard.board*self.gameboard.piece, dtype=torch.float64), (1,1,15,15))).detach().cpu().numpy()[0]
         #self.gameboard.set_out(out) # Set the output of the network to the gameboard
-        self.gameboard.im2.set_data(out*self.gameboard.piece)
+        self.gameboard.im2.set_data(out)
         sorted_idx = np.flip(np.argsort(out, axis=None))
         for idx in sorted_idx:
             idx = np.unravel_index(idx, out.shape) 
