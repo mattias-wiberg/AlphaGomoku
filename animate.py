@@ -27,4 +27,5 @@ def animate(i):
 
 anim = animation.FuncAnimation(gameboard.fig, animate, frames=nSeconds*fps, interval=1000/fps, repeat=False)
 plt.show()
+print("Saving animation...")
 anim.save('animation.gif', fps=fps, writer='pillow')

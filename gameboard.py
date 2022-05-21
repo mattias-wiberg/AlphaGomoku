@@ -14,21 +14,23 @@ class GameBoard:
         self.gameover = False
         self.piece = -1
         self.n_moves = 0
-        self.out = np.zeros((N_row, N_col), dtype=np.int8)
+        self.im2 = None
 
         if draw:
             # Plotting
-            self.fig, axis = plt.subplots(1,2, figsize=(10,10))
+            self.fig, (self.ax0, self.ax1) = plt.subplots(1,2, figsize=(10,10))
 
-            self.set_square_grid(axis[0], N_row)
-            self.center_labels(axis[0], self.fig)
-            self.im = axis[0].imshow(self.board, cmap='Greys_r', vmin = -1, vmax =1)
+            self.set_square_grid(self.ax0, N_row)
+            self.center_labels(self.ax0, self.fig)
+            self.im = self.ax0.imshow(self.board, cmap='Greys_r', vmin = -1, vmax =1)
+            self.ax0.set_title('Current Player Black')
             #self.fig.colorbar(self.im, fraction=0.046, pad=0.04)
 
-            self.set_square_grid(axis[1], N_row)
-            self.center_labels(axis[1], self.fig)
-            self.im2 = axis[1].imshow(self.out, cmap='Greys_r', vmin = -1, vmax =1)
-            self.fig.colorbar(self.im2, ax=axis[1], fraction=0.046, pad=0.04)
+            self.set_square_grid(self.ax1, N_row)
+            self.center_labels(self.ax1, self.fig)
+            self.im2 = self.ax1.imshow(self.board, cmap='Greys_r', vmin = -1, vmax =1)
+            self.fig.colorbar(self.im2, ax=self.ax1, fraction=0.046, pad=0.04)
+            self.ax1.set_title("Q table")
         else:
             self.im = None
 
@@ -146,4 +148,9 @@ class GameBoard:
             self.piece *= -1
         else:
             self.piece *= -1 # Alternate between white and black
+
+        if self.piece*-1 == 1: # Invert since we plot the board before the move so it is always behind.
+            self.ax0.set_title('Current Player White')
+        else:
+            self.ax0.set_title('Current Player Black')
         return reward
