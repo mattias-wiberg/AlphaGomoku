@@ -18,17 +18,17 @@ class GameBoard:
 
         if draw:
             # Plotting
-            self.fig, axis = plt.subplots(1,2)
+            self.fig, axis = plt.subplots(1,2, figsize=(10,10))
 
             self.set_square_grid(axis[0], N_row)
             self.center_labels(axis[0], self.fig)
             self.im = axis[0].imshow(self.board, cmap='Greys_r', vmin = -1, vmax =1)
-            self.fig.colorbar(self.im, ax=axis[0],fraction=0.046, pad=0.04)
+            #self.fig.colorbar(self.im, fraction=0.046, pad=0.04)
 
             self.set_square_grid(axis[1], N_row)
             self.center_labels(axis[1], self.fig)
             self.im2 = axis[1].imshow(self.out, cmap='Greys_r', vmin = -1, vmax =1)
-            self.fig.colorbar(self.im2, ax=axis[1],fraction=0.046, pad=0.04)
+            self.fig.colorbar(self.im2, ax=axis[1], fraction=0.046, pad=0.04)
         else:
             self.im = None
 
