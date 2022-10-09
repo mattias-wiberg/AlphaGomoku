@@ -1,5 +1,6 @@
 # AlphaGomoku
 A deep q network implementation to find a strategy for the game traditional Gomoku.
+![Live game of network playing against itself](https://github.com/mattias-wiberg/AlphaGomoku/blob/main/Figures/deep_network_conv/slow_long.gif?raw=true)
 ## Description
 Gomoku, also called Five in a Row, is an abstract strategy board game. It is traditionally played with Go pieces (black and white stones) on a Go board. It is played using a 15×15 board while in the past a 19×19 board was standard. Because pieces are typically not moved or removed from the board, gomoku may also be played as a paper-and-pencil game. The game is known in several countries under different names.
 
